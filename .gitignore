@@ -22,7 +22,6 @@ uImage
 /nuttx
 /nuttx.*
 /nuttx-*
-/uImage
 /_SAVED_APPS_config
 /*.map
 /*.elf
