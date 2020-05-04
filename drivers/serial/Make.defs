@@ -51,6 +51,10 @@ ifeq ($(CONFIG_RPMSG_UART),y)
   CSRCS += uart_rpmsg.c
 endif
 
+ifeq ($(CONFIG_MCS99xx_UART),y)
+  CSRCS += mcs99xx.c
+endif
+
 # termios support
 
 ifeq ($(CONFIG_SERIAL_TERMIOS),y)

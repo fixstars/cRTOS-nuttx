@@ -78,6 +78,16 @@ config RPMSG_SERIALINIT
 	default y if !16550_UART && !MCU_SERIAL
 	depends on RPMSG_UART
 
+config MCS99xx_UART
+	bool "PCI-E based MCS99xx UART driver"
+	default n
+	select PCIE
+	select 16550_UART
+
+if MCS99xx_UART
+source drivers/serial/Kconfig-mcs99xx
+endif
+
 #
 # Standard serial driver configuration
 #
