@@ -43,7 +43,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-struct pcie_dev_type_s pcie_type_mcs99xx;
+extern struct pcie_dev_type_s pcie_mcs99xx;
 
 #undef EXTERN
 #ifdef __cplusplus

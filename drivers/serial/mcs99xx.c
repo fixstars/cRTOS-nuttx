@@ -235,9 +235,10 @@ int mcs99xx_probe(FAR struct pcie_bus_s* bus,
   return OK;
 }
 
-struct pcie_dev_type_s pcie_type_mcs99xx = {
+struct pcie_dev_type_s pcie_mcs99xx = {
     .vendor = 0x9710,
     .device = 0x9912,
     .class_rev = 0x00000200,
+    .name = "MCS99xx PCI-E Serial Adapter",
     .probe = mcs99xx_probe
 };
