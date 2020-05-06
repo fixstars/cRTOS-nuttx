@@ -6,7 +6,7 @@
 if MCS99xx_UART
 
 config MCS99xx_UART_MAX_COUNT
-	int "Maximum number of mcs99xx devices"
+	int "Maximum number of MCS99xx devices"
 
 config MCS99xx_UART_BASE_IRQ
 	int "The BASE IRQ of MCS99xx devices"
