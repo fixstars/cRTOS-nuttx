@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/x86_64/intel64/qemu-intel64/src/qemu_pcie.c
+ * boards/x86_64/intel64/qemu-intel64/src/qemu_pci.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -66,9 +66,9 @@
 
 #include <assert.h>
 
-#include <nuttx/pcie/pcie.h>
+#include <nuttx/pci/pci.h>
 
-#include "qemu_pcie_readwrite.h"
+#include "qemu_pci_readwrite.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -78,29 +78,29 @@
  * Private Functions Definitions
  ****************************************************************************/
 
-static int qemu_pci_cfg_write(FAR struct pcie_dev_s *dev, uintptr_t addr,
+static int qemu_pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
                               FAR const void *buffer, unsigned int size);
 
-static int qemu_pci_cfg_read(FAR struct pcie_dev_s *dev, uintptr_t addr,
+static int qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
                              FAR void *buffer, unsigned int size);
 
-static int qemu_pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t addr,
+static int qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
                             unsigned long length);
 
-static int qemu_pci_map_bar64(FAR struct pcie_dev_s *dev, uint64_t addr,
+static int qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
                               unsigned long length);
 
-static int qemu_pci_msix_register(FAR struct pcie_dev_s *dev,
+static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
                                   uint32_t vector, uint32_t index);
 
-static int qemu_pci_msi_register(FAR struct pcie_dev_s *dev,
+static int qemu_pci_msi_register(FAR struct pci_dev_s *dev,
                                  uint16_t vector);
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-struct pcie_bus_ops_s qemu_pcie_bus_ops =
+struct pci_bus_ops_s qemu_pci_bus_ops =
 {
     .pci_cfg_write     =   qemu_pci_cfg_write,
     .pci_cfg_read      =   qemu_pci_cfg_read,
@@ -110,9 +110,9 @@ struct pcie_bus_ops_s qemu_pcie_bus_ops =
     .pci_msi_register  = qemu_pci_msi_register,
 };
 
-struct pcie_bus_s qemu_pcie_bus =
+struct pci_bus_s qemu_pci_bus =
 {
-    .ops = &qemu_pcie_bus_ops,
+    .ops = &qemu_pci_bus_ops,
 };
 
 /****************************************************************************
@@ -123,7 +123,7 @@ struct pcie_bus_s qemu_pcie_bus =
  * Name: qemu_pci_cfg_write
  *
  * Description:
- *  Write 8, 16, 32, 64 bits data to PCI-E configuration space of device
+ *  Write 8, 16, 32, 64 bits data to PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
@@ -136,7 +136,7 @@ struct pcie_bus_s qemu_pcie_bus =
  *
  ****************************************************************************/
 
-static int qemu_pci_cfg_write(FAR struct pcie_dev_s *dev, uintptr_t addr,
+static int qemu_pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
                               FAR const void *buffer, unsigned int size)
 {
   if (!buffer)
@@ -159,7 +159,7 @@ static int qemu_pci_cfg_write(FAR struct pcie_dev_s *dev, uintptr_t addr,
  * Name: qemu_pci_cfg_read
  *
  * Description:
- *  Read 8, 16, 32, 64 bits data from PCI-E configuration space of device
+ *  Read 8, 16, 32, 64 bits data from PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
@@ -172,7 +172,7 @@ static int qemu_pci_cfg_write(FAR struct pcie_dev_s *dev, uintptr_t addr,
  *
  ****************************************************************************/
 
-static int qemu_pci_cfg_read(FAR struct pcie_dev_s *dev, uintptr_t addr,
+static int qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
                              FAR void *buffer, unsigned int size)
 {
   if (!buffer)
@@ -208,7 +208,7 @@ static int qemu_pci_cfg_read(FAR struct pcie_dev_s *dev, uintptr_t addr,
  *
  ****************************************************************************/
 
-static int qemu_pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t addr,
+static int qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
                             unsigned long length)
 {
   up_map_region((void *)((uintptr_t)addr), length,
@@ -234,7 +234,7 @@ static int qemu_pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t addr,
  *
  ****************************************************************************/
 
-static int qemu_pci_map_bar64(FAR struct pcie_dev_s *dev, uint64_t addr,
+static int qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
                               unsigned long length)
 {
   up_map_region((void *)((uintptr_t)addr), length,
@@ -260,7 +260,7 @@ static int qemu_pci_map_bar64(FAR struct pcie_dev_s *dev, uint64_t addr,
  *
  ****************************************************************************/
 
-static int qemu_pci_msix_register(FAR struct pcie_dev_s *dev,
+static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
                                   uint32_t vector, uint32_t index)
 {
   unsigned int bar;
@@ -342,7 +342,7 @@ static int qemu_pci_msix_register(FAR struct pcie_dev_s *dev,
  *
  ****************************************************************************/
 
-static int qemu_pci_msi_register(FAR struct pcie_dev_s *dev, uint16_t vector)
+static int qemu_pci_msi_register(FAR struct pci_dev_s *dev, uint16_t vector)
 {
   uint16_t ctl;
   uint16_t data;
@@ -385,14 +385,14 @@ static int qemu_pci_msi_register(FAR struct pcie_dev_s *dev, uint16_t vector)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: qemu_pcie_init
+ * Name: qemu_pci_init
  *
  * Description:
- *  Initialize the PCI-E bus *
+ *  Initialize the PCI bus *
  *
  ****************************************************************************/
 
-void qemu_pcie_init(void)
+void qemu_pci_init(void)
 {
-  pcie_initialize(&qemu_pcie_bus);
+  pci_initialize(&qemu_pci_bus);
 }

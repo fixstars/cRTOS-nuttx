@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/drivers/pcie/pcie_root.c
+ * nuttx/drivers/pci/pci.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/pcie/pcie.h>
+#include <nuttx/pci/pci.h>
 #include <nuttx/virt/qemu_pci.h>
 
 /****************************************************************************
@@ -39,10 +39,10 @@
  * Public Data
  ****************************************************************************/
 
-struct pcie_dev_type_s *pci_device_types[] =
+struct pci_dev_type_s *pci_device_types[] =
 {
 #ifdef CONFIG_VIRT_QEMU_PCI_TEST
-  &pcie_type_qemu_pci_test,
+  &pci_type_qemu_pci_test,
 #endif /* CONFIG_VIRT_QEMU_PCI_TEST */
   NULL,
 };
@@ -59,7 +59,7 @@ struct pcie_dev_type_s *pci_device_types[] =
  *  Initialize any recognized devices, given in types.
  *
  * Input Parameters:
- *   bus    - PCI-E bus structure
+ *   bus    - PCI bus structure
  *   type   - List of pointers to devices types recognized, NULL terminated
  *
  * Returned Value:
@@ -67,15 +67,15 @@ struct pcie_dev_type_s *pci_device_types[] =
  *
  ****************************************************************************/
 
-int pci_enumerate(FAR struct pcie_bus_s *bus,
-                  FAR struct pcie_dev_type_s **types)
+int pci_enumerate(FAR struct pci_bus_s *bus,
+                  FAR struct pci_dev_type_s **types)
 {
   unsigned int bdf;
   uint16_t vid;
   uint16_t id;
   uint16_t rev;
-  struct pcie_dev_s tmp_dev;
-  struct pcie_dev_type_s tmp_type =
+  struct pci_dev_s tmp_dev;
+  struct pci_dev_type_s tmp_type =
     {
       .name = "Unknown",
       .vendor = PCI_ID_ANY,
@@ -89,7 +89,7 @@ int pci_enumerate(FAR struct pcie_bus_s *bus,
   if (!types)
       return -EINVAL;
 
-  for (bdf = 0; bdf < CONFIG_PCIE_MAX_BDF; bdf++)
+  for (bdf = 0; bdf < CONFIG_PCI_MAX_BDF; bdf++)
     {
       tmp_dev.bus = bus;
       tmp_dev.type = &tmp_type;
@@ -141,15 +141,15 @@ int pci_enumerate(FAR struct pcie_bus_s *bus,
 }
 
 /****************************************************************************
- * Name: pcie_initialize
+ * Name: pci_initialize
  *
  * Description:
- *  Initialize the PCI-E bus and enumerate the devices with give devices
+ *  Initialize the PCI bus and enumerate the devices with give devices
  *  type array
  *
  * Input Parameters:
- *   bus    - An PCIE bus
- *   types  - A array of PCIE device types
+ *   bus    - An PCI bus
+ *   types  - A array of PCI device types
  *   num    - Number of device types
  *
  * Returned Value:
@@ -158,7 +158,7 @@ int pci_enumerate(FAR struct pcie_bus_s *bus,
  *
  ****************************************************************************/
 
-int pcie_initialize(FAR struct pcie_bus_s *bus)
+int pci_initialize(FAR struct pci_bus_s *bus)
 {
   return pci_enumerate(bus, pci_device_types);
 }
@@ -178,7 +178,7 @@ int pcie_initialize(FAR struct pcie_bus_s *bus)
  *
  ****************************************************************************/
 
-int pci_enable_device(FAR struct pcie_dev_s *dev)
+int pci_enable_device(FAR struct pci_dev_s *dev)
 {
   uint16_t old_cmd;
   uint16_t cmd;
@@ -200,7 +200,7 @@ int pci_enable_device(FAR struct pcie_dev_s *dev)
  * Name: pci_find_cap
  *
  * Description:
- *  Search through the PCI-e device capability list to find given capability.
+ *  Search through the PCI device capability list to find given capability.
  *
  * Input Parameters:
  *   dev - Device
@@ -212,7 +212,7 @@ int pci_enable_device(FAR struct pcie_dev_s *dev)
  *
  ****************************************************************************/
 
-int pci_find_cap(FAR struct pcie_dev_s *dev, uint16_t cap)
+int pci_find_cap(FAR struct pci_dev_s *dev, uint16_t cap)
 {
   uint8_t pos = PCI_CFG_CAP_PTR - 1;
   uint16_t status;
@@ -252,7 +252,7 @@ int pci_find_cap(FAR struct pcie_dev_s *dev, uint16_t cap)
  *
  ****************************************************************************/
 
-int pci_get_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 uint32_t *ret)
 {
   if (bar > 5)
@@ -279,7 +279,7 @@ int pci_get_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_get_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   uint64_t *ret)
 {
   if (bar > 4 || ((bar % 2) != 0))
@@ -312,7 +312,7 @@ int pci_get_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_set_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_set_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 uint32_t val)
 {
   if (bar > 5)
@@ -339,7 +339,7 @@ int pci_set_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_set_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_set_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   uint64_t val)
 {
   if (bar > 4 || ((bar % 2) != 0))
@@ -371,7 +371,7 @@ int pci_set_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 unsigned long length, uint32_t *ret)
 {
   if (bar > 5)
@@ -414,7 +414,7 @@ int pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_map_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   unsigned long length, uint64_t *ret)
 {
   if (bar > 4 || ((bar % 2) != 0))

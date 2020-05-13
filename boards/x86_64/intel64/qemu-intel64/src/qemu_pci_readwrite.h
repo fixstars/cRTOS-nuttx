@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/x86_64/intel64/qemu-intel64/src/qemu_pcie_readwrite.h
+ * boards/x86_64/intel64/qemu-intel64/src/qemu_pci_readwrite.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,7 +18,7 @@
  *
  ****************************************************************************/
 
-/* The PCI-E Definitions and part of the access routines are taken from
+/* The PCI Definitions and part of the access routines are taken from
  * Jailhouse inmate library
  *
  * Jailhouse, a Linux-based partitioning hypervisor
@@ -58,8 +58,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __INCLUDE_NUTTX_PCIE_PCIE_READWRITE_H
-#define __INCLUDE_NUTTX_PCIE_PCIE_READWRITE_H
+#ifndef __INCLUDE_NUTTX_PCI_PCI_READWRITE_H
+#define __INCLUDE_NUTTX_PCI_PCI_READWRITE_H
 
 /****************************************************************************
  * Included Files
@@ -69,7 +69,7 @@
 
 #include <assert.h>
 
-#include <nuttx/pcie/pcie.h>
+#include <nuttx/pci/pci.h>
 
 #include <nuttx/board.h>
 #include <arch/board/board.h>
@@ -90,7 +90,7 @@
  * Name: __qemu_pci_cfg_write
  *
  * Description:
- *  Write 8, 16, 32 bits data to PCI-E configuration space of device
+ *  Write 8, 16, 32 bits data to PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
@@ -133,7 +133,7 @@ static inline int __qemu_pci_cfg_write(uint16_t bfd, uintptr_t addr,
  * Name: __qemu_pci_cfg_write64
  *
  * Description:
- *  Write 64 bits data to PCI-E configuration space of device
+ *  Write 64 bits data to PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
@@ -165,7 +165,7 @@ static inline int __qemu_pci_cfg_write64(uint16_t bfd, uintptr_t addr,
  * Name: __qemu_pci_cfg_read
  *
  * Description:
- *  Read 8, 16, 32 bits data from PCI-E configuration space of device
+ *  Read 8, 16, 32 bits data from PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
@@ -208,7 +208,7 @@ static inline int __qemu_pci_cfg_read(uint16_t bfd, uintptr_t addr,
  * Name: __qemu_pci_cfg_read
  *
  * Description:
- *  Read 64 bits data from PCI-E configuration space of device
+ *  Read 64 bits data from PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
@@ -237,4 +237,4 @@ static inline int __qemu_pci_cfg_read64(uint16_t bfd,
   return ret;
 }
 
-#endif /* __INCLUDE_NUTTX_PCIE_PCIE_READWRITE_H */
+#endif /* __INCLUDE_NUTTX_PCI_PCI_READWRITE_H */

@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <sched.h>
 
-#include <nuttx/pcie/pcie.h>
+#include <nuttx/pci/pci.h>
 #include <nuttx/virt/qemu_pci.h>
 
 /*****************************************************************************
@@ -68,11 +68,11 @@ struct pci_test_dev_hdr_s
  *   Initialize device
  *****************************************************************************/
 
-int qemu_pci_test_probe(FAR struct pcie_bus_s *bus,
-                        FAR struct pcie_dev_type_s *type, uint16_t bdf)
+int qemu_pci_test_probe(FAR struct pci_bus_s *bus,
+                        FAR struct pci_dev_type_s *type, uint16_t bdf)
 {
   uint32_t bar[2];
-  struct pcie_dev_s dev =
+  struct pci_dev_s dev =
     {
       .bus = bus,
       .type = type,
@@ -120,7 +120,7 @@ int qemu_pci_test_probe(FAR struct pcie_bus_s *bus,
  * Public Data
  *****************************************************************************/
 
-struct pcie_dev_type_s pcie_type_qemu_pci_test =
+struct pci_dev_type_s pci_type_qemu_pci_test =
 {
     .vendor = 0x1b36,
     .device = 0x0005,

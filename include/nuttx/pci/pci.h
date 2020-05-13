@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/pcie/pcie.h
+ * include/nuttx/pci/pci.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,10 +18,10 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_PCIE_PCIE_H
-#define __INCLUDE_NUTTX_PCIE_PCIE_H
+#ifndef __INCLUDE_NUTTX_PCI_PCI_H
+#define __INCLUDE_NUTTX_PCI_PCI_H
 
-#ifdef CONFIG_PCIE
+#ifdef CONFIG_PCI
 
 /****************************************************************************
  * Included Files
@@ -97,48 +97,48 @@
  * Public Types
  ****************************************************************************/
 
-/* The PCIE driver interface */
+/* The PCI driver interface */
 
-struct pcie_bus_s;
-struct pcie_dev_type_s;
-struct pcie_dev_s;
+struct pci_bus_s;
+struct pci_dev_type_s;
+struct pci_dev_s;
 
 /* Bus related operations */
 
-struct pcie_bus_ops_s
+struct pci_bus_ops_s
 {
-    CODE int (*pcie_enumerate)(FAR struct pcie_bus_s *bus,
-                               FAR struct pcie_dev_type_s **types);
+    CODE int (*pci_enumerate)(FAR struct pci_bus_s *bus,
+                               FAR struct pci_dev_type_s **types);
 
-    CODE int (*pci_cfg_write)(FAR struct pcie_dev_s *dev, uintptr_t addr,
+    CODE int (*pci_cfg_write)(FAR struct pci_dev_s *dev, uintptr_t addr,
                               FAR const void *buffer, unsigned int size);
 
-    CODE int (*pci_cfg_read)(FAR struct pcie_dev_s *dev, uintptr_t addr,
+    CODE int (*pci_cfg_read)(FAR struct pci_dev_s *dev, uintptr_t addr,
                              FAR void *buffer, unsigned int size);
 
-    CODE int (*pci_map_bar)(FAR struct pcie_dev_s *dev, uint32_t addr,
+    CODE int (*pci_map_bar)(FAR struct pci_dev_s *dev, uint32_t addr,
                             unsigned long length);
 
-    CODE int (*pci_map_bar64)(FAR struct pcie_dev_s *dev, uint64_t addr,
+    CODE int (*pci_map_bar64)(FAR struct pci_dev_s *dev, uint64_t addr,
                             unsigned long length);
 
-    CODE int (*pci_msi_register)(FAR struct pcie_dev_s *dev,
+    CODE int (*pci_msi_register)(FAR struct pci_dev_s *dev,
                                  uint16_t vector);
 
-    CODE int (*pci_msix_register)(FAR struct pcie_dev_s *dev,
+    CODE int (*pci_msix_register)(FAR struct pci_dev_s *dev,
                                   uint32_t vector, uint32_t index);
 };
 
-/* PCIE bus private data. */
+/* PCI bus private data. */
 
-struct pcie_bus_s
+struct pci_bus_s
 {
-  FAR const struct pcie_bus_ops_s *ops; /* operations */
+  FAR const struct pci_bus_ops_s *ops; /* operations */
 };
 
-/* PCIE device type, defines by vendor ID and device ID */
+/* PCI device type, defines by vendor ID and device ID */
 
-struct pcie_dev_type_s
+struct pci_dev_type_s
 {
   uint16_t      vendor;            /* Device vendor ID */
   uint16_t      device;            /* Device ID */
@@ -147,16 +147,16 @@ struct pcie_dev_type_s
 
   /* Call back function when a device is probed */
 
-  CODE int (*probe)(FAR struct pcie_bus_s *bus,
-                    FAR struct pcie_dev_type_s *type, uint16_t bdf);
+  CODE int (*probe)(FAR struct pci_bus_s *bus,
+                    FAR struct pci_dev_type_s *type, uint16_t bdf);
 };
 
-/* PCIE device private data. */
+/* PCI device private data. */
 
-struct pcie_dev_s
+struct pci_dev_s
 {
-    FAR struct pcie_bus_s       *bus;
-    FAR struct pcie_dev_type_s  *type;
+    FAR struct pci_bus_s       *bus;
+    FAR struct pci_dev_type_s  *type;
     uint16_t                    bdf;
 };
 
@@ -174,15 +174,15 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Name: pcie_initialize
+ * Name: pci_initialize
  *
  * Description:
  *  Initialize the PCI-E bus and enumerate the devices with give devices
  *  type array
  *
  * Input Parameters:
- *   bus    - An PCIE bus
- *   types  - A array of PCIE device types
+ *   bus    - An PCI bus
+ *   types  - A array of PCI device types
  *   num    - Number of device types
  *
  * Returned Value:
@@ -191,7 +191,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int pcie_initialize(FAR struct pcie_bus_s *bus);
+int pci_initialize(FAR struct pci_bus_s *bus);
 
 /****************************************************************************
  * Name: pci_enable_device
@@ -208,7 +208,7 @@ int pcie_initialize(FAR struct pcie_bus_s *bus);
  *
  ****************************************************************************/
 
-int pci_enable_device(FAR struct pcie_dev_s *dev);
+int pci_enable_device(FAR struct pci_dev_s *dev);
 
 /****************************************************************************
  * Name: pci_find_cap
@@ -226,7 +226,7 @@ int pci_enable_device(FAR struct pcie_dev_s *dev);
  *
  ****************************************************************************/
 
-int pci_find_cap(FAR struct pcie_dev_s *dev, uint16_t cap);
+int pci_find_cap(FAR struct pci_dev_s *dev, uint16_t cap);
 
 /****************************************************************************
  * Name: pci_map_bar
@@ -245,7 +245,7 @@ int pci_find_cap(FAR struct pcie_dev_s *dev, uint16_t cap);
  *
  ****************************************************************************/
 
-int pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 unsigned long length, uint32_t *ret);
 
 /****************************************************************************
@@ -265,7 +265,7 @@ int pci_map_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_map_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   unsigned long length, uint64_t *ret);
 
 /****************************************************************************
@@ -284,7 +284,7 @@ int pci_map_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_get_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 uint32_t *ret);
 
 /****************************************************************************
@@ -303,7 +303,7 @@ int pci_get_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_get_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   uint64_t *ret);
 
 /****************************************************************************
@@ -322,7 +322,7 @@ int pci_get_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_set_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_set_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 uint32_t val);
 
 /****************************************************************************
@@ -341,7 +341,7 @@ int pci_set_bar(FAR struct pcie_dev_s *dev, uint32_t bar,
  *
  ****************************************************************************/
 
-int pci_set_bar64(FAR struct pcie_dev_s *dev, uint32_t bar,
+int pci_set_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   uint64_t val);
 
 #undef EXTERN
