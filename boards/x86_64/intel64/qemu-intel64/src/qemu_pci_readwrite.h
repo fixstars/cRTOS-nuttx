@@ -95,8 +95,7 @@
  *
  * Input Parameters:
  *   bfd    - Device private data
- *   buffer - A pointer to the read-only buffer of data to be written
- *   size   - The number of bytes to send from the buffer
+ *   val    - Value to be written
  *
  * Returned Value:
  *   0: success, <0: A negated errno
@@ -104,24 +103,23 @@
  ****************************************************************************/
 
 static inline int __qemu_pci_cfg_write(uint16_t bfd, uintptr_t addr,
-                                       FAR const void *buffer,
+                                       uint32_t val,
                                        unsigned int size)
 {
-  if (!buffer)
-      return -EINVAL;
-
   outl(PCI_CONE | ((uint32_t)bfd << 8) | (addr & 0xfc), PCI_REG_ADDR_PORT);
+
+  DEBUGASSERT(size == 1 || size == 2 || size == 4);
 
   switch (size)
     {
       case 1:
-        outb(*(uint8_t *)(buffer), PCI_REG_DATA_PORT + (addr & 0x3));
+        outb((uint8_t)(val), PCI_REG_DATA_PORT + (addr & 0x3));
         break;
       case 2:
-        outw(*(uint16_t *)(buffer), PCI_REG_DATA_PORT + (addr & 0x3));
+        outw((uint16_t)(val), PCI_REG_DATA_PORT + (addr & 0x3));
         break;
       case 4:
-        outl(*(uint32_t *)(buffer), PCI_REG_DATA_PORT);
+        outl((uint32_t)(val), PCI_REG_DATA_PORT);
         break;
       default:
         return -EINVAL;
@@ -138,8 +136,7 @@ static inline int __qemu_pci_cfg_write(uint16_t bfd, uintptr_t addr,
  *
  * Input Parameters:
  *   bfd    - Device private data
- *   buffer - A pointer to the read-only buffer of data to be written
- *   size   - The number of bytes to send from the buffer
+ *   val    - Value to be written
  *
  * Returned Value:
  *   0: success, <0: A negated errno
@@ -147,16 +144,12 @@ static inline int __qemu_pci_cfg_write(uint16_t bfd, uintptr_t addr,
  ****************************************************************************/
 
 static inline int __qemu_pci_cfg_write64(uint16_t bfd, uintptr_t addr,
-                                         FAR const void *buffer,
-                                         unsigned int size)
+                                         uint64_t val)
 {
   int ret;
 
-  if (!buffer)
-      return -EINVAL;
-
-  ret = __qemu_pci_cfg_write(bfd, addr + 4, buffer + 4, 4);
-  ret |= __qemu_pci_cfg_write(bfd, addr, buffer, 4);
+  ret = __qemu_pci_cfg_write(bfd, addr + 4, val >> 32, 4);
+  ret |= __qemu_pci_cfg_write(bfd, addr, (uint32_t)val, 4);
 
   return ret;
 }
@@ -170,38 +163,31 @@ static inline int __qemu_pci_cfg_write64(uint16_t bfd, uintptr_t addr,
  *
  * Input Parameters:
  *   dev    - Device private data
- *   buffer - A pointer to a buffer to receive the data from the device
  *   size   - The requested number of bytes to be read
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Value in configuration space
  *
  ****************************************************************************/
 
-static inline int __qemu_pci_cfg_read(uint16_t bfd, uintptr_t addr,
-                                      FAR void *buffer, unsigned int size)
+static inline uint32_t __qemu_pci_cfg_read(uint16_t bfd, uintptr_t addr,
+                                           unsigned int size)
 {
-  if (!buffer)
-      return -EINVAL;
+  DEBUGASSERT(size == 1 || size == 2 || size == 4);
 
   outl(PCI_CONE | ((uint32_t)bfd << 8) | (addr & 0xfc), PCI_REG_ADDR_PORT);
 
   switch (size)
     {
       case 1:
-        *(uint8_t *)(buffer) = inb(PCI_REG_DATA_PORT + (addr & 0x3));
-        break;
+        return inb(PCI_REG_DATA_PORT + (addr & 0x3));
       case 2:
-        *(uint16_t *)(buffer) = inw(PCI_REG_DATA_PORT + (addr & 0x3));
-        break;
+        return inw(PCI_REG_DATA_PORT + (addr & 0x3));
       case 4:
-        *(uint32_t *)(buffer) = inl(PCI_REG_DATA_PORT);
-        break;
-      default:
-        return -EINVAL;
+        return inl(PCI_REG_DATA_PORT);
     }
 
-    return OK;
+  return 0;
 }
 
 /****************************************************************************
@@ -213,26 +199,19 @@ static inline int __qemu_pci_cfg_read(uint16_t bfd, uintptr_t addr,
  *
  * Input Parameters:
  *   dev    - Device private data
- *   buffer - A pointer to a buffer to receive the data from the device
- *   size   - The requested number of bytes to be read
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Value in configuration space
  *
  ****************************************************************************/
 
-static inline int __qemu_pci_cfg_read64(uint16_t bfd,
-                                        uintptr_t addr,
-                                        FAR void *buffer,
-                                        unsigned int size)
+static inline uint64_t __qemu_pci_cfg_read64(uint16_t bfd,
+                                             uintptr_t addr)
 {
   int ret;
 
-  if (!buffer)
-      return -EINVAL;
-
-  ret = __qemu_pci_cfg_read(bfd, addr + 4, buffer + 4, 4);
-  ret |= __qemu_pci_cfg_read(bfd, addr, buffer, 4);
+  ret = __qemu_pci_cfg_read(bfd, addr + 4, 4);
+  ret |= __qemu_pci_cfg_read(bfd, addr, 4);
 
   return ret;
 }

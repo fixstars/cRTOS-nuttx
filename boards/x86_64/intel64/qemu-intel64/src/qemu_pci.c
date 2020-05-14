@@ -79,16 +79,16 @@
  ****************************************************************************/
 
 static int qemu_pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
-                              FAR const void *buffer, unsigned int size);
+                              uint32_t val, unsigned int size);
 
-static int qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
-                             FAR void *buffer, unsigned int size);
+static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
+                                  unsigned int size);
 
-static int qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
-                            unsigned long length);
-
-static int qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
+static void* qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
                               unsigned long length);
+
+static void* qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
+                                unsigned long length);
 
 static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
                                   uint32_t vector, uint32_t index);
@@ -106,8 +106,8 @@ struct pci_bus_ops_s qemu_pci_bus_ops =
     .pci_cfg_read      =   qemu_pci_cfg_read,
     .pci_map_bar       =   qemu_pci_map_bar,
     .pci_map_bar64     =   qemu_pci_map_bar64,
-    .pci_msix_register = qemu_pci_msix_register,
-    .pci_msi_register  = qemu_pci_msi_register,
+    .pci_msix_register =   qemu_pci_msix_register,
+    .pci_msi_register  =   qemu_pci_msi_register,
 };
 
 struct pci_bus_s qemu_pci_bus =
@@ -123,13 +123,13 @@ struct pci_bus_s qemu_pci_bus =
  * Name: qemu_pci_cfg_write
  *
  * Description:
- *  Write 8, 16, 32, 64 bits data to PCI configuration space of device
+ *  Write 8, 16, 32 bits data to PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
  *   bdf    - Device private data
- *   buffer - A pointer to the read-only buffer of data to be written
- *   size   - The number of bytes to send from the buffer
+ *   val    - Value to be written
+ *   size   - The number of bytes to be written
  *
  * Returned Value:
  *   0: success, <0: A negated errno
@@ -137,58 +137,35 @@ struct pci_bus_s qemu_pci_bus =
  ****************************************************************************/
 
 static int qemu_pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
-                              FAR const void *buffer, unsigned int size)
+                              uint32_t val, unsigned int size)
 {
-  if (!buffer)
-      return -EINVAL;
+  DEBUGASSERT(size == 1 || size == 2 || size == 4);
 
-  switch (size)
-    {
-      case 1:
-      case 2:
-      case 4:
-        return __qemu_pci_cfg_write(dev->bdf, addr, buffer, size);
-      case 8:
-        return __qemu_pci_cfg_write(dev->bdf, addr, buffer, size);
-      default:
-        return -EINVAL;
-    }
+  return __qemu_pci_cfg_write(dev->bdf, addr, val, size);
 }
 
 /****************************************************************************
  * Name: qemu_pci_cfg_read
  *
  * Description:
- *  Read 8, 16, 32, 64 bits data from PCI configuration space of device
+ *  Read 8, 16, 32 bits data from PCI configuration space of device
  *  specified by dev
  *
  * Input Parameters:
  *   dev    - Device private data
- *   buffer - A pointer to a buffer to receive the data from the device
  *   size   - The requested number of bytes to be read
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Value in configuration space
  *
  ****************************************************************************/
 
-static int qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
-                             FAR void *buffer, unsigned int size)
+static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
+                                  unsigned int size)
 {
-  if (!buffer)
-      return -EINVAL;
+  DEBUGASSERT(size == 1 || size == 2 || size == 4);
 
-  switch (size)
-    {
-      case 1:
-      case 2:
-      case 4:
-        return __qemu_pci_cfg_read(dev->bdf, addr, buffer, size);
-      case 8:
-        return __qemu_pci_cfg_read64(dev->bdf, addr, buffer, size);
-      default:
-        return -EINVAL;
-    }
+  return __qemu_pci_cfg_read(dev->bdf, addr, size);
 }
 
 /****************************************************************************
@@ -201,20 +178,19 @@ static int qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
  *   dev    - Device private data
  *   bar    - Bar number
  *   length - Map length, multiple of PAGE_SIZE
- *   ret    - Bar Content
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *   0: error, otherwise: bar content
  *
  ****************************************************************************/
 
-static int qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
-                            unsigned long length)
+static void* qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
+                              unsigned long length)
 {
   up_map_region((void *)((uintptr_t)addr), length,
       X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
-  return OK;
+  return (void*)((uintptr_t)addr);
 }
 
 /****************************************************************************
@@ -227,20 +203,19 @@ static int qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
  *   dev    - Device private data
  *   bar    - Bar number
  *   length - Map length, multiple of PAGE_SIZE
- *   ret    - Bar Content
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *   0: error, otherwise: bar content
  *
  ****************************************************************************/
 
-static int qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
-                              unsigned long length)
+static void* qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
+                                unsigned long length)
 {
   up_map_region((void *)((uintptr_t)addr), length,
       X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
-  return OK;
+  return (void*)((uintptr_t)addr);
 }
 
 /****************************************************************************
@@ -273,20 +248,22 @@ static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
   if (cap < 0)
       return -EINVAL;
 
-  __qemu_pci_cfg_read(dev->bdf, cap + PCI_MSIX_MCR,
-                      &message_control, PCI_MSIX_MCR_SIZE);
+  message_control = __qemu_pci_cfg_read(dev->bdf, cap + PCI_MSIX_MCR,
+                                        PCI_MSIX_MCR_SIZE);
 
   /* bounds check */
 
   if (index > (message_control & PCI_MSIX_MCR_TBL_MASK))
       return -EINVAL;
 
-  __qemu_pci_cfg_read(dev->bdf, cap + PCI_MSIX_TBL,
-                      &table_bar_ind, PCI_MSIX_TBL_SIZE);
+  table_bar_ind = __qemu_pci_cfg_read(dev->bdf, cap + PCI_MSIX_TBL,
+                                      PCI_MSIX_TBL_SIZE);
 
   bar = (table_bar_ind & PCI_MSIX_BIR_MASK);
 
-  if (!pci_get_bar(dev, bar, &table_addr_32))
+  table_addr_32 = pci_get_bar(dev, bar);
+
+  if ((table_addr_32 & PCI_BAR_64BIT) != PCI_BAR_64BIT)
     {
       /* 32 bit bar */
 
@@ -294,7 +271,7 @@ static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
     }
   else
     {
-      pci_get_bar64(dev, bar, &msix_table_addr);
+      msix_table_addr = pci_get_bar64(dev, bar);
     }
 
   msix_table_addr &= ~0xf;
@@ -304,7 +281,7 @@ static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
 
   message_control |= (PCI_MSIX_MCR_EN | PCI_MSIX_MCR_FMASK);
   __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSIX_MCR,
-                       &message_control, PCI_MSIX_MCR_SIZE);
+                       message_control, PCI_MSIX_MCR_SIZE);
 
   msix_table_addr += PCI_MSIX_TBL_ENTRY_SIZE * index;
   mmio_write32((uint32_t *)(msix_table_addr + PCI_MSIX_TBL_LO_ADDR),
@@ -321,7 +298,7 @@ static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
   message_control &= ~PCI_MSIX_MCR_FMASK;
 
   __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSIX_MCR,
-                       &message_control, PCI_MSIX_MCR_SIZE);
+                       message_control, PCI_MSIX_MCR_SIZE);
 
   return 0;
 }
@@ -352,14 +329,14 @@ static int qemu_pci_msi_register(FAR struct pci_dev_s *dev, uint16_t vector)
       return -1;
 
   uint32_t dest = 0xfee00000 | (up_apic_cpu_id() << PCI_MSI_APIC_ID_OFFSET);
-  __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSI_MAR, &dest, PCI_MSI_MAR_SIZE);
+  __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSI_MAR, dest, PCI_MSI_MAR_SIZE);
 
-  __qemu_pci_cfg_read(dev->bdf, cap + PCI_MSI_MCR, &ctl, PCI_MSI_MCR_SIZE);
+  ctl = __qemu_pci_cfg_read(dev->bdf, cap + PCI_MSI_MCR, PCI_MSI_MCR_SIZE);
   if ((ctl & PCI_MSI_MCR_64) == PCI_MSI_MCR_64)
     {
       uint32_t tmp = 0;
       __qemu_pci_cfg_write(dev->bdf,
-                           cap + PCI_MSI_MAR64_HI, &tmp,
+                           cap + PCI_MSI_MAR64_HI, tmp,
                            PCI_MSI_MAR64_HI_SIZE);
       data = cap + PCI_MSI_MDR64;
     }
@@ -368,14 +345,13 @@ static int qemu_pci_msi_register(FAR struct pci_dev_s *dev, uint16_t vector)
       data = cap + PCI_MSI_MDR;
     }
 
-  __qemu_pci_cfg_write(dev->bdf, data, &vector, PCI_MSI_MDR_SIZE);
+  __qemu_pci_cfg_write(dev->bdf, data, vector, PCI_MSI_MDR_SIZE);
 
-  __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSI_MCR, &vector,
+  __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSI_MCR, vector,
                        PCI_MSI_MCR_SIZE);
 
-  uint16_t tmp = PCI_MSI_MCR_EN;
-
-  __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSI_MCR, &tmp, PCI_MSI_MCR_SIZE);
+  __qemu_pci_cfg_write(dev->bdf, cap + PCI_MSI_MCR,
+                       PCI_MSI_MCR_EN, PCI_MSI_MCR_SIZE);
 
   return OK;
 }

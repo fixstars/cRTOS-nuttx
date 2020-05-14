@@ -108,19 +108,19 @@ struct pci_dev_s;
 struct pci_bus_ops_s
 {
     CODE int (*pci_enumerate)(FAR struct pci_bus_s *bus,
-                               FAR struct pci_dev_type_s **types);
+                              FAR struct pci_dev_type_s **types);
 
     CODE int (*pci_cfg_write)(FAR struct pci_dev_s *dev, uintptr_t addr,
-                              FAR const void *buffer, unsigned int size);
+                              FAR uint32_t val, unsigned int size);
 
-    CODE int (*pci_cfg_read)(FAR struct pci_dev_s *dev, uintptr_t addr,
-                             FAR void *buffer, unsigned int size);
+    CODE uint32_t (*pci_cfg_read)(FAR struct pci_dev_s *dev, uintptr_t addr,
+                                  unsigned int size);
 
-    CODE int (*pci_map_bar)(FAR struct pci_dev_s *dev, uint32_t addr,
-                            unsigned long length);
+    CODE void* (*pci_map_bar)(FAR struct pci_dev_s *dev, uint32_t addr,
+                              unsigned long length);
 
-    CODE int (*pci_map_bar64)(FAR struct pci_dev_s *dev, uint64_t addr,
-                            unsigned long length);
+    CODE void* (*pci_map_bar64)(FAR struct pci_dev_s *dev, uint64_t addr,
+                                unsigned long length);
 
     CODE int (*pci_msi_register)(FAR struct pci_dev_s *dev,
                                  uint16_t vector);
@@ -238,15 +238,13 @@ int pci_find_cap(FAR struct pci_dev_s *dev, uint16_t cap);
  *   dev    - Device private data
  *   bar    - Bar number
  *   length - Map length, multiple of PAGE_SIZE
- *   ret    - Bar Contentif not NULL
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *   NULL: error, otherwise bar content
  *
  ****************************************************************************/
 
-int pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar,
-                unsigned long length, uint32_t *ret);
+void* pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar);
 
 /****************************************************************************
  * Name: pci_map_bar64
@@ -258,15 +256,13 @@ int pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar,
  *   dev    - Device private data
  *   bar    - Bar number
  *   length - Map length, multiple of PAGE_SIZE
- *   ret    - Bar Content if not NULL
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *   NULL: error, otherwise bar content
  *
  ****************************************************************************/
 
-int pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
-                  unsigned long length, uint64_t *ret);
+void* pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar);
 
 /****************************************************************************
  * Name: pci_get_bar
@@ -280,12 +276,11 @@ int pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
  *   ret    - Bar Content
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Content of the bar
  *
  ****************************************************************************/
 
-int pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar,
-                uint32_t *ret);
+uint32_t pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar);
 
 /****************************************************************************
  * Name: pci_get_bar64
@@ -299,12 +294,11 @@ int pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar,
  *   ret    - Bar Content
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Content of the bar
  *
  ****************************************************************************/
 
-int pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
-                  uint64_t *ret);
+uint64_t pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar);
 
 /****************************************************************************
  * Name: pci_set_bar
@@ -343,6 +337,134 @@ int pci_set_bar(FAR struct pci_dev_s *dev, uint32_t bar,
 
 int pci_set_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   uint64_t val);
+
+/****************************************************************************
+ * Name: pci_get_bar_size
+ *
+ * Description:
+ *  Get a 32 bits bar size
+ *
+ * Input Parameters:
+ *   dev    - Device private data
+ *   bar    - Bar number
+ *
+ * Returned Value:
+ *    Content of the bar
+ *
+ ****************************************************************************/
+
+uint32_t pci_get_bar_size(FAR struct pci_dev_s *dev, uint32_t bar);
+
+/****************************************************************************
+ * Name: pci_get_bar64_size
+ *
+ * Description:
+ *  Get a 64 bits bar size
+ *
+ * Input Parameters:
+ *   dev    - Device private data
+ *   bar    - Bar number
+ *
+ * Returned Value:
+ *    Content of the bar
+ *
+ ****************************************************************************/
+
+uint64_t pci_get_bar64_size(FAR struct pci_dev_s *dev, uint32_t bar);
+
+/****************************************************************************
+ * Name: pci_cfg_write
+ *
+ * Description:
+ *  Write 8, 16, 32 bits data to PCI configuration space of device
+ *  specified by dev
+ *
+ * Input Parameters:
+ *   bdf    - Device private data
+ *   val    - Value to be written
+ *   size   - The number of bytes to be written
+ *
+ * Returned Value:
+ *   0: success, <0: A negated errno
+ *
+ ****************************************************************************/
+
+static inline int pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
+                                uint32_t value, unsigned int size)
+{
+  DEBUGASSERT(size == 1 || size == 2 || size == 4);
+
+  return dev->bus->ops->pci_cfg_write(dev, addr, value, size);
+}
+
+/****************************************************************************
+ * Name: pci_cfg_read
+ *
+ * Description:
+ *  Read 8, 16, 32 bits data from PCI configuration space of device
+ *  specified by dev
+ *
+ * Input Parameters:
+ *   dev    - Device private data
+ *   size   - The requested number of bytes to be read
+ *
+ * Returned Value:
+ *    Value in configuration space
+ *
+ ****************************************************************************/
+
+static inline uint32_t pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
+                                    unsigned int size)
+{
+  DEBUGASSERT(size == 1 || size == 2 || size == 4);
+
+  return dev->bus->ops->pci_cfg_read(dev, addr, size);
+}
+
+/****************************************************************************
+ * Name: pci_msix_register
+ *
+ * Description:
+ *  Map a device MSI-X vector to a platform IRQ vector
+ *
+ * Input Parameters:
+ *   dev - Device
+ *   vector - IRQ number of the platform
+ *   index  - Device MSI-X vector number
+ *
+ * Returned Value:
+ *   <0: Mapping failed
+ *    0: Mapping succeed
+ *
+ ****************************************************************************/
+
+static inline int pci_msix_register(FAR struct pci_dev_s *dev,
+                                    uint32_t vector, uint32_t index)
+{
+  return dev->bus->ops->pci_msix_register(dev, vector, index);
+}
+
+/****************************************************************************
+ * Name: pci_msi_register
+ *
+ * Description:
+ *  Map device MSI vectors to a platform IRQ vector
+ *
+ * Input Parameters:
+ *   dev - Device
+ *   vector - IRQ number of the platform
+ *
+ * Returned Value:
+ *   <0: Mapping failed
+ *    0: Mapping succeed
+ *
+ ****************************************************************************/
+
+static inline int pci_msi_register(FAR struct pci_dev_s *dev, uint16_t vector)
+{
+  return dev->bus->ops->pci_msi_register(dev, vector);
+}
+
 
 #undef EXTERN
 #if defined(__cplusplus)

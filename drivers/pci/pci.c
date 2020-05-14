@@ -89,15 +89,17 @@ int pci_enumerate(FAR struct pci_bus_s *bus,
   if (!types)
       return -EINVAL;
 
+  DEBUGASSERT(bus->ops->pci_cfg_read);
+
   for (bdf = 0; bdf < CONFIG_PCI_MAX_BDF; bdf++)
     {
       tmp_dev.bus = bus;
       tmp_dev.type = &tmp_type;
       tmp_dev.bdf = bdf;
 
-      bus->ops->pci_cfg_read(&tmp_dev, PCI_CFG_VENDOR_ID, &vid, 2);
-      bus->ops->pci_cfg_read(&tmp_dev, PCI_CFG_DEVICE_ID, &id, 2);
-      bus->ops->pci_cfg_read(&tmp_dev, PCI_CFG_REVERSION, &rev, 2);
+      vid = bus->ops->pci_cfg_read(&tmp_dev, PCI_CFG_VENDOR_ID, 2);
+      id = bus->ops->pci_cfg_read(&tmp_dev, PCI_CFG_DEVICE_ID, 2);
+      rev = bus->ops->pci_cfg_read(&tmp_dev, PCI_CFG_REVERSION, 2);
 
       if (vid == PCI_ID_ANY)
         continue;
@@ -183,11 +185,14 @@ int pci_enable_device(FAR struct pci_dev_s *dev)
   uint16_t old_cmd;
   uint16_t cmd;
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_COMMAND, &old_cmd, 2);
+  DEBUGASSERT(dev->bus->ops->pci_cfg_read);
+  DEBUGASSERT(dev->bus->ops->pci_cfg_write);
+
+  old_cmd = dev->bus->ops->pci_cfg_read(dev, PCI_CFG_COMMAND, 2);
 
   cmd = old_cmd | (PCI_CMD_MASTER | PCI_CMD_MEM);
 
-  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_COMMAND, &cmd, 2);
+  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_COMMAND, cmd, 2);
 
   pciinfo("%02x:%02x.%x, CMD: %x -> %x\n",
           dev->bdf >> 8, (dev->bdf >> 3) & 0x1f, dev->bdf & 0x3,
@@ -218,18 +223,20 @@ int pci_find_cap(FAR struct pci_dev_s *dev, uint16_t cap)
   uint16_t status;
   uint8_t rcap;
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_STATUS, &status, 2);
+  DEBUGASSERT(dev->bus->ops->pci_cfg_read);
+
+  status = dev->bus->ops->pci_cfg_read(dev, PCI_CFG_STATUS, 2);
 
   if (!(status & PCI_STS_CAPS))
       return -EINVAL;
 
   while (1)
     {
-      dev->bus->ops->pci_cfg_read(dev, pos + 1, &pos, 1);
+      pos = dev->bus->ops->pci_cfg_read(dev, pos + 1, 1);
       if (pos == 0)
           return -EINVAL;
 
-      dev->bus->ops->pci_cfg_read(dev, pos, &rcap, 1);
+      rcap = dev->bus->ops->pci_cfg_read(dev, pos, 1);
 
       if (rcap == cap)
           return pos;
@@ -245,22 +252,19 @@ int pci_find_cap(FAR struct pci_dev_s *dev, uint16_t cap)
  * Input Parameters:
  *   dev    - Device private data
  *   bar    - Bar number
- *   ret    - Bar Content
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Content of the bar
  *
  ****************************************************************************/
 
-int pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar,
-                uint32_t *ret)
+uint32_t pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar)
 {
-  if (bar > 5)
-      return -EINVAL;
+  DEBUGASSERT(bar <= 5);
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4, ret, 4);
+  DEBUGASSERT(dev->bus->ops->pci_cfg_read);
 
-  return OK;
+  return dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4, 4);
 }
 
 /****************************************************************************
@@ -272,28 +276,91 @@ int pci_get_bar(FAR struct pci_dev_s *dev, uint32_t bar,
  * Input Parameters:
  *   dev    - Device private data
  *   bar    - Bar number
- *   ret    - Bar Content
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *    Content of the bar
  *
  ****************************************************************************/
 
-int pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
-                  uint64_t *ret)
+uint64_t pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar)
 {
-  if (bar > 4 || ((bar % 2) != 0))
-      return -EINVAL;
+  DEBUGASSERT(bar <= 4 && ((bar % 2) == 0));
+
+  DEBUGASSERT(dev->bus->ops->pci_cfg_read);
 
   uint32_t barmem1;
   uint32_t barmem2;
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4, &barmem1, 4);
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4 + 4, &barmem2, 4);
+  barmem1 = dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4, 4);
 
-  *ret = ((uint64_t)barmem2 << 32) | barmem1;
+  DEBUGASSERT((barmem1 & PCI_BAR_64BIT) == PCI_BAR_64BIT);
 
-  return OK;
+  barmem2 = dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4 + 4, 4);
+
+  return ((uint64_t)barmem2 << 32) | barmem1;
+}
+
+/****************************************************************************
+ * Name: pci_get_bar_size
+ *
+ * Description:
+ *  Get a 32 bits bar size
+ *
+ * Input Parameters:
+ *   dev    - Device private data
+ *   bar    - Bar number
+ *
+ * Returned Value:
+ *    Content of the bar
+ *
+ ****************************************************************************/
+
+uint32_t pci_get_bar_size(FAR struct pci_dev_s *dev, uint32_t bar)
+{
+  DEBUGASSERT(bar <= 5);
+
+  DEBUGASSERT(dev->bus->ops->pci_cfg_read);
+
+  uint32_t original = pci_get_bar(dev, bar);
+  pci_set_bar(dev, bar, 0xffffffff);
+
+  uint32_t size = pci_get_bar(dev, bar);
+  size = ~(size & ~0xf) + 1;
+
+  pci_set_bar(dev, bar, original);
+
+  return size;
+}
+
+/****************************************************************************
+ * Name: pci_get_bar64_size
+ *
+ * Description:
+ *  Get a 64 bits bar size
+ *
+ * Input Parameters:
+ *   dev    - Device private data
+ *   bar    - Bar number
+ *
+ * Returned Value:
+ *    Content of the bar
+ *
+ ****************************************************************************/
+
+uint64_t pci_get_bar64_size(FAR struct pci_dev_s *dev, uint32_t bar)
+{
+  DEBUGASSERT(bar <= 4 && ((bar % 2) == 0));
+
+  uint64_t original = pci_get_bar64(dev, bar);
+
+  pci_set_bar64(dev, bar, 0xffffffffffffffff);
+
+  uint64_t size = pci_get_bar64(dev, bar);
+  size = ~(size & ~0xf) + 1;
+
+  pci_set_bar64(dev, bar, original);
+
+  return size;
 }
 
 /****************************************************************************
@@ -315,10 +382,11 @@ int pci_get_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
 int pci_set_bar(FAR struct pci_dev_s *dev, uint32_t bar,
                 uint32_t val)
 {
-  if (bar > 5)
-      return -EINVAL;
+  DEBUGASSERT(bar <= 5);
 
-  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_BAR + bar * 4, &val, 4);
+  DEBUGASSERT(dev->bus->ops->pci_cfg_write);
+
+  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_BAR + bar * 4, val, 4);
 
   return OK;
 }
@@ -342,14 +410,14 @@ int pci_set_bar(FAR struct pci_dev_s *dev, uint32_t bar,
 int pci_set_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
                   uint64_t val)
 {
-  if (bar > 4 || ((bar % 2) != 0))
-      return -EINVAL;
+  DEBUGASSERT(bar <= 4 && ((bar % 2) == 0));
 
-  uint32_t barmem1 = (uint32_t)val;
-  uint32_t barmem2 = (uint32_t)(val >> 32);
+  DEBUGASSERT(dev->bus->ops->pci_cfg_write);
 
-  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_BAR + bar * 4, &barmem1, 4);
-  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_BAR + bar * 4 + 4, &barmem2, 4);
+  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_BAR + bar * 4,
+                               (uint32_t)val, 4);
+  dev->bus->ops->pci_cfg_write(dev, PCI_CFG_BAR + bar * 4 + 4,
+                               (uint32_t)(val >> 32), 4);
 
   return OK;
 }
@@ -364,37 +432,29 @@ int pci_set_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
  *   dev    - Device private data
  *   bar    - Bar number
  *   length - Map length, multiple of PAGE_SIZE
- *   ret    - Bar Content if not NULL
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *   NULL: error, otherwise: bar content
  *
  ****************************************************************************/
 
-int pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar,
-                unsigned long length, uint32_t *ret)
+void* pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar)
 {
-  if (bar > 5)
-      return -EINVAL;
+  DEBUGASSERT(bar <= 5);
 
-  uint32_t barmem;
+  if (!dev->bus->ops->pci_map_bar ||
+      !dev->bus->ops->pci_cfg_read)
+      return 0;
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4, &barmem, 4);
+  uint32_t barmem = pci_get_bar(dev, bar);
+  unsigned long length = pci_get_bar_size(dev, bar);
 
   if (((bar % 2) == 0 &&
       (barmem & PCI_BAR_64BIT) == PCI_BAR_64BIT) ||
       (barmem & PCI_BAR_IO)    == PCI_BAR_IO)
-      return -EINVAL;
+      return 0;
 
-  if (!dev->bus->ops->pci_map_bar)
-      return -EINVAL;
-
-  dev->bus->ops->pci_map_bar(dev, barmem, length);
-
-  if (ret)
-    *ret = barmem;
-
-  return OK;
+  return dev->bus->ops->pci_map_bar(dev, barmem & ~0xf, length);
 }
 
 /****************************************************************************
@@ -407,40 +467,26 @@ int pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar,
  *   dev    - Device private data
  *   bar    - Bar number
  *   length - Map length, multiple of PAGE_SIZE
- *   ret    - Bar Content if not NULL
  *
  * Returned Value:
- *   0: success, <0: A negated errno
+ *   NULL: error, otherwise: bar content
  *
  ****************************************************************************/
 
-int pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
-                  unsigned long length, uint64_t *ret)
+void* pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar)
 {
-  if (bar > 4 || ((bar % 2) != 0))
+  DEBUGASSERT(bar <= 4 && ((bar % 2) == 0));
+
+  if (!dev->bus->ops->pci_map_bar64 ||
+      !dev->bus->ops->pci_cfg_read)
       return -EINVAL;
 
-  uint32_t barmem1;
-  uint32_t barmem2;
-  uint64_t barmem;
+  uint64_t barmem = pci_get_bar64(dev, bar);
+  unsigned long length = pci_get_bar64_size(dev, bar);
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4, &barmem1, 4);
-
-  if ((barmem1 & PCI_BAR_64BIT) != PCI_BAR_64BIT ||
-      (barmem1 & PCI_BAR_IO)    == PCI_BAR_IO)
+  if ((barmem & PCI_BAR_64BIT) != PCI_BAR_64BIT ||
+      (barmem & PCI_BAR_IO)    == PCI_BAR_IO)
       return -EINVAL;
 
-  dev->bus->ops->pci_cfg_read(dev, PCI_CFG_BAR + bar * 4 + 4, &barmem2, 4);
-
-  barmem = ((uint64_t)barmem2 << 32) | barmem1;
-
-  if (!dev->bus->ops->pci_map_bar64)
-      return -EINVAL;
-
-  dev->bus->ops->pci_map_bar64(dev, barmem, length);
-
-  if (ret)
-    *ret = barmem;
-
-  return OK;
+  return dev->bus->ops->pci_map_bar64(dev, barmem & ~0xf, length);
 }

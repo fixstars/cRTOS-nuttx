@@ -10,3 +10,14 @@ config QEMU_PCI
 
 	---help---
 		Enables initialization and scaning of standard x86-64 PCI/PCI-E bus.
+
+config QEMU_PCI_BAR_PAGE_COUNT
+	int "Number pages reserved for mapping uninitialized bars"
+	default 16
+	depends on QEMU_PCI
+
+	---help---
+		Most of the time BIOS/EFI or bootloader will map the PCI/PCI-E's bar
+		for us. However, in certain scenario, the device bar may be unmapped.
+		This option set the number of pages in memory space reserved for 
+		mapping the bars.

@@ -71,7 +71,7 @@ struct pci_test_dev_hdr_s
 int qemu_pci_test_probe(FAR struct pci_bus_s *bus,
                         FAR struct pci_dev_type_s *type, uint16_t bdf)
 {
-  uint32_t bar[2];
+  void* bar[2];
   struct pci_dev_s dev =
     {
       .bus = bus,
@@ -83,16 +83,13 @@ int qemu_pci_test_probe(FAR struct pci_bus_s *bus,
 
   for (int ii = 0; ii < 2; ii++)
     {
-      pci_get_bar(&dev, ii, bar + ii);
+      bar[ii] = pci_map_bar(&dev, ii);
 
-      if ((bar[ii] & PCI_BAR_IO) != PCI_BAR_IO)
+      if (bar[ii])
         {
-          pciinfo("Mapping BAR%d: %x\n", ii, bar[ii]);
+          pciinfo("Mapped BAR%d: %p\n", ii, bar[ii]);
 
-          pci_map_bar(&dev, ii, 0x1000, NULL);
-
-          struct pci_test_dev_hdr_s *ptr =
-            (struct pci_test_dev_hdr_s *)(uintptr_t)bar[ii];
+          struct pci_test_dev_hdr_s *ptr = bar[ii];
 
           int i = 0;
           while (1)
