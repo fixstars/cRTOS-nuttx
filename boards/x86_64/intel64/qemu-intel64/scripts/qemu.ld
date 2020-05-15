@@ -54,7 +54,17 @@ SECTIONS
     . = ALIGN(0x1000);
       _boot_end = .;
 
-    . += 0x100000000;
+    . = 0xf0000000;
+
+    .pcibar ALIGN(0x1000) (NOLOAD) :
+    {
+        _spcibar = ABSOLUTE(.);
+        *(.pcibar)
+        . = ALIGN(4);
+        _epcibar = ABSOLUTE(.);
+    }
+
+    . = 0x100000000 + _boot_end;
     _kernel_virtual_start = .;
 
     .text : AT(_boot_end)

@@ -67,6 +67,7 @@
 #include <assert.h>
 
 #include <nuttx/pci/pci.h>
+#include <nuttx/mm/gran.h>
 
 #include "qemu_pci_readwrite.h"
 
@@ -95,6 +96,21 @@ static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
 
 static int qemu_pci_msi_register(FAR struct pci_dev_s *dev,
                                  uint16_t vector);
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
+
+static volatile uint8_t* \
+           qemu_pci_bar_pages[CONFIG_QEMU_PCI_BAR_PAGE_COUNT * PAGE_SIZE] \
+           __attribute__((aligned(PAGE_SIZE))) \
+           __attribute__((section(".pcibar")));
+
+static GRAN_HANDLE qemu_pci_bar_mem_hnd;
+
+#endif
 
 /****************************************************************************
  * Public Data
@@ -187,10 +203,30 @@ static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
 static void* qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
                               unsigned long length)
 {
-  up_map_region((void *)((uintptr_t)addr), length,
-      X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
+  if(addr)
+    {
+      up_map_region((void *)((uintptr_t)addr), length,
+          X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
   return (void*)((uintptr_t)addr);
+    }
+#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
+  else
+    {
+      uintptr_t addr64 = (uintptr_t)gran_alloc(qemu_pci_bar_pages, length);
+      if (addr64 > 0xffffffff)
+        {
+          gran_free(qemu_pci_bar_pages, (void*)addr64, length);
+          return NULL;
+        }
+      else
+        {
+          return (void*)addr64;
+        }
+    }
+#endif
+
+  return NULL;
 }
 
 /****************************************************************************
@@ -212,10 +248,22 @@ static void* qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
 static void* qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
                                 unsigned long length)
 {
-  up_map_region((void *)((uintptr_t)addr), length,
-      X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
+  if(addr)
+    {
+      up_map_region((void *)((uintptr_t)addr), length,
+          X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
-  return (void*)((uintptr_t)addr);
+      return (void*)((uintptr_t)addr);
+    }
+#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
+  else
+    {
+      uintptr_t addr64 = (uintptr_t)gran_alloc(qemu_pci_bar_pages, length);
+      return (void*)addr64;
+    }
+#endif
+
+  return NULL;
 }
 
 /****************************************************************************
@@ -370,5 +418,12 @@ static int qemu_pci_msi_register(FAR struct pci_dev_s *dev, uint16_t vector)
 
 void qemu_pci_init(void)
 {
+#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
+  qemu_pci_bar_mem_hnd =
+    gran_initialize(qemu_pci_bar_pages,
+                    CONFIG_QEMU_PCI_BAR_PAGE_COUNT * PAGE_SIZE,
+                    12, 12);
+#endif
+
   pci_initialize(&qemu_pci_bus);
 }

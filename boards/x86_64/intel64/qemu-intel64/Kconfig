@@ -15,6 +15,7 @@ config QEMU_PCI_BAR_PAGE_COUNT
 	int "Number pages reserved for mapping uninitialized bars"
 	default 16
 	depends on QEMU_PCI
+	depends on GRAN
 
 	---help---
 		Most of the time BIOS/EFI or bootloader will map the PCI/PCI-E's bar

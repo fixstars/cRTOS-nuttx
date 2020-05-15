@@ -477,16 +477,17 @@ void* pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar)
 {
   DEBUGASSERT(bar <= 4 && ((bar % 2) == 0));
 
-  if (!dev->bus->ops->pci_map_bar64 ||
+  if ((!dev->bus->ops->pci_map_bar64 &&
+       !dev->bus->ops->pci_map_bar) ||
       !dev->bus->ops->pci_cfg_read)
-      return -EINVAL;
+      return 0;
 
   uint64_t barmem = pci_get_bar64(dev, bar);
   unsigned long length = pci_get_bar64_size(dev, bar);
 
   if ((barmem & PCI_BAR_64BIT) != PCI_BAR_64BIT ||
       (barmem & PCI_BAR_IO)    == PCI_BAR_IO)
-      return -EINVAL;
+      return 0;
 
   return dev->bus->ops->pci_map_bar64(dev, barmem & ~0xf, length);
 }
