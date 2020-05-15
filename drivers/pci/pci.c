@@ -30,6 +30,7 @@
 
 #include <nuttx/pci/pci.h>
 #include <nuttx/virt/qemu_pci.h>
+#include <nuttx/virt/ivshmem.h>
 #include <nuttx/serial/uart_mcs99xx.h>
 
 /****************************************************************************
@@ -48,6 +49,9 @@ struct pci_dev_type_s *pci_device_types[] =
 #ifdef CONFIG_MCS99XX_UART
   &pci_mcs99xx,
 #endif /* CONFIG_MCS99xx_UART */
+#ifdef CONFIG_VIRT_JH_IVSHMEM
+  &pci_ivshmem,
+#endif /* CONFIG_VIRT_JH_IVSHMEM */
   NULL,
 };
 

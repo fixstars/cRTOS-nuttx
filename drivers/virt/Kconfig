@@ -19,4 +19,23 @@ config VIRT_QEMU_PCI_TEST
 	---help---
 		Driver for QEMU PCI test device
 
+config VIRT_JH_IVSHMEM
+	bool "Driver for Jailhouse ivshmem 2.0"
+	default n
+	select PCI
+	---help---
+		Driver for Jailhouse Ivshmem 2.0
+
+if VIRT_JH_IVSHMEM
+
+config VIRT_JH_IVSHMEM_MAX_COUNT
+	int "Maximum number of ivshmem devices"
+	default 4
+
+config VIRT_JH_IVSHMEM_BASE_IRQ
+	int "Base IRQ Number for Ivhsmem devices"
+	default 0
+
+endif
+
 endif # VIRT
