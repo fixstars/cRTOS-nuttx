@@ -35,6 +35,49 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: up_map_region_to
+ *
+ * Description:
+ *   Map a memory region by MMU
+ *
+ ****************************************************************************/
+
+int up_map_region_to(void *to_base, void *from_base, int size, int flags)
+{
+  uint64_t num_of_pages;
+  uint64_t entry;
+  int i;
+
+  /* Round to page boundary */
+
+  uint64_t tob = (uint64_t)to_base & PAGE_MASK;
+  uint64_t fromb = (uint64_t)from_base & PAGE_MASK;
+
+  /* Increase size if the base address is rounded off */
+
+  size += (uint64_t)to_base - tob;
+  num_of_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+
+  if (tob > 0xffffffff)
+    {
+      return -1;  /* Only < 4GB can be mapped */
+    }
+
+  uint64_t tocurr = tob;
+  uint64_t fromcurr = fromb;
+  for (i = 0; i < num_of_pages; i++)
+    {
+      entry = (tocurr >> 12) & 0x7ffffff;
+
+      pt[entry] = fromcurr | flags;
+      tocurr += PAGE_SIZE;
+      fromcurr += PAGE_SIZE;
+    }
+
+  return 0;
+}
+
+/****************************************************************************
  * Name: up_map_region
  *
  * Description:
@@ -44,34 +87,5 @@
 
 int up_map_region(void *base, int size, int flags)
 {
-  uint64_t bb;
-  uint64_t num_of_pages;
-  uint64_t entry;
-  uint64_t curr;
-  int i;
-
-  /* Round to page boundary */
-
-  bb = (uint64_t)base & ~(PAGE_SIZE - 1);
-
-  /* Increase size if the base address is rounded off */
-
-  size += (uint64_t)base - bb;
-  num_of_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
-
-  if (bb > 0xffffffff)
-    {
-      return -1;  /* Only < 4GB can be mapped */
-    }
-
-  curr = bb;
-  for (i = 0; i < num_of_pages; i++)
-    {
-      entry = (curr >> 12) & 0x7ffffff;
-
-      pt[entry] = curr | flags;
-      curr += PAGE_SIZE;
-    }
-
-  return 0;
+  return up_map_region_to(base, base, size, flags);
 }
