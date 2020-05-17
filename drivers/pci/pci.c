@@ -434,17 +434,19 @@ int pci_set_bar64(FAR struct pci_dev_s *dev, uint32_t bar,
  *   length - Map length, multiple of PAGE_SIZE
  *
  * Returned Value:
- *   NULL: error, otherwise: bar content
+ *   NULL: error, Otherwise: Mapped address
  *
  ****************************************************************************/
 
-void* pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar)
+void *pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar)
 {
+  void *ret;
+
   DEBUGASSERT(bar <= 5);
 
-  if (!dev->bus->ops->pci_map_bar ||
+  if (!dev->bus->ops->pci_map_mem ||
       !dev->bus->ops->pci_cfg_read)
-      return 0;
+      return NULL;
 
   uint32_t barmem = pci_get_bar(dev, bar);
   unsigned long length = pci_get_bar_size(dev, bar);
@@ -452,9 +454,14 @@ void* pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar)
   if (((bar % 2) == 0 &&
       (barmem & PCI_BAR_64BIT) == PCI_BAR_64BIT) ||
       (barmem & PCI_BAR_IO)    == PCI_BAR_IO)
-      return 0;
+      return NULL;
 
-  return dev->bus->ops->pci_map_bar(dev, barmem & ~0xf, length);
+  ret = dev->bus->ops->pci_map_mem(dev, barmem & ~0xf, length);
+
+  if (!(barmem & ~0xf))
+      pci_set_bar(dev, bar, (uint32_t)((uintptr_t)ret));
+
+  return ret;
 }
 
 /****************************************************************************
@@ -469,25 +476,58 @@ void* pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar)
  *   length - Map length, multiple of PAGE_SIZE
  *
  * Returned Value:
- *   NULL: error, otherwise: bar content
+ *   NULL: error, Otherwise: Mapped address
  *
  ****************************************************************************/
 
-void* pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar)
+void *pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar)
 {
+  void *ret;
+
   DEBUGASSERT(bar <= 4 && ((bar % 2) == 0));
 
-  if ((!dev->bus->ops->pci_map_bar64 &&
-       !dev->bus->ops->pci_map_bar) ||
+  if (!dev->bus->ops->pci_map_mem ||
       !dev->bus->ops->pci_cfg_read)
-      return 0;
+      return NULL;
 
   uint64_t barmem = pci_get_bar64(dev, bar);
   unsigned long length = pci_get_bar64_size(dev, bar);
 
   if ((barmem & PCI_BAR_64BIT) != PCI_BAR_64BIT ||
       (barmem & PCI_BAR_IO)    == PCI_BAR_IO)
-      return 0;
+      return NULL;
 
-  return dev->bus->ops->pci_map_bar64(dev, barmem & ~0xf, length);
+  ret = dev->bus->ops->pci_map_mem(dev, barmem & ~0xf, length);
+
+  if (!(barmem & ~0xf))
+      pci_set_bar64(dev, bar, (uint64_t)ret);
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: pci_ioremap
+ *
+ * Description:
+ *  Map PCI address region in the flat memory address space
+ *
+ * Input Parameters:
+ *   dev       - Device private data
+ *   from_addr - Address to map
+ *   length    - Map length
+ *
+ * Returned Value:
+ *   NULL: error, Otherwise: Mapped address
+ *
+ ****************************************************************************/
+
+void *pci_ioremap(FAR struct pci_dev_s *dev,
+                  uintptr_t from_addr, unsigned long length)
+{
+  DEBUGASSERT(from_addr != 0);
+
+  if (!dev->bus->ops->pci_map_mem)
+      return NULL;
+
+  return dev->bus->ops->pci_map_mem(dev, from_addr, length);
 }

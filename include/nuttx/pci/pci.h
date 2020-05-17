@@ -116,11 +116,8 @@ struct pci_bus_ops_s
     CODE uint32_t (*pci_cfg_read)(FAR struct pci_dev_s *dev, uintptr_t addr,
                                   unsigned int size);
 
-    CODE void* (*pci_map_bar)(FAR struct pci_dev_s *dev, uint32_t addr,
-                              unsigned long length);
-
-    CODE void* (*pci_map_bar64)(FAR struct pci_dev_s *dev, uint64_t addr,
-                                unsigned long length);
+    CODE void* (*pci_map_mem)(FAR struct pci_dev_s *dev, uintptr_t addr,
+                                  unsigned long length);
 
     CODE int (*pci_msi_register)(FAR struct pci_dev_s *dev,
                                  uint16_t vector);
@@ -240,7 +237,7 @@ int pci_find_cap(FAR struct pci_dev_s *dev, uint16_t cap);
  *   length - Map length, multiple of PAGE_SIZE
  *
  * Returned Value:
- *   NULL: error, otherwise bar content
+ *   NULL: error, Otherwise: Mapped address
  *
  ****************************************************************************/
 
@@ -258,11 +255,30 @@ void* pci_map_bar(FAR struct pci_dev_s *dev, uint32_t bar);
  *   length - Map length, multiple of PAGE_SIZE
  *
  * Returned Value:
- *   NULL: error, otherwise bar content
+ *   NULL: error, Otherwise: Mapped address
  *
  ****************************************************************************/
 
 void* pci_map_bar64(FAR struct pci_dev_s *dev, uint32_t bar);
+
+/****************************************************************************
+ * Name: pci_ioremap
+ *
+ * Description:
+ *  Map PCI address region in the flat memory address space
+ *
+ * Input Parameters:
+ *   dev       - Device private data
+ *   from_addr - Address to map
+ *   length    - Map length
+ *
+ * Returned Value:
+ *   NULL: error, Otherwise: Mapped address
+ *
+ ****************************************************************************/
+
+void* pci_ioremap(FAR struct pci_dev_s *dev,
+                  uintptr_t from_addr, unsigned long length);
 
 /****************************************************************************
  * Name: pci_get_bar

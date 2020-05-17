@@ -65,6 +65,7 @@
 #include <nuttx/config.h>
 
 #include <assert.h>
+#include <string.h>
 
 #include <nuttx/pci/pci.h>
 #include <nuttx/mm/gran.h>
@@ -85,11 +86,8 @@ static int qemu_pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
 static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
                                   unsigned int size);
 
-static void* qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
+static void* qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
                               unsigned long length);
-
-static void* qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
-                                unsigned long length);
 
 static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
                                   uint32_t vector, uint32_t index);
@@ -103,12 +101,12 @@ static int qemu_pci_msi_register(FAR struct pci_dev_s *dev,
 
 #ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
 
-static volatile uint8_t* \
+static volatile uint8_t \
            qemu_pci_bar_pages[CONFIG_QEMU_PCI_BAR_PAGE_COUNT * PAGE_SIZE] \
            __attribute__((aligned(PAGE_SIZE))) \
            __attribute__((section(".pcibar")));
 
-static GRAN_HANDLE qemu_pci_bar_mem_hnd;
+static uint64_t qemu_bar_pages_bitmap[(CONFIG_QEMU_PCI_BAR_PAGE_COUNT + 63) / 64];
 
 #endif
 
@@ -120,8 +118,7 @@ struct pci_bus_ops_s qemu_pci_bus_ops =
 {
     .pci_cfg_write     =   qemu_pci_cfg_write,
     .pci_cfg_read      =   qemu_pci_cfg_read,
-    .pci_map_bar       =   qemu_pci_map_bar,
-    .pci_map_bar64     =   qemu_pci_map_bar64,
+    .pci_map_mem       =   qemu_pci_map_mem,
     .pci_msix_register =   qemu_pci_msix_register,
     .pci_msi_register  =   qemu_pci_msi_register,
 };
@@ -134,6 +131,105 @@ struct pci_bus_s qemu_pci_bus =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
+
+/****************************************************************************
+ * Name: qemu_page_alloc
+ *
+ * Description:
+ *  Allocate pages from the bar pages memory reions
+ *
+ * Input Parameters:
+ *   size   - The number of bytes to be allocated, must be page aligned
+ *
+ * Returned Value:
+ *   0: success, <0: A negated errno
+ *
+ ****************************************************************************/
+
+void* qemu_page_alloc(size_t size)
+{
+  irqstate_t flags;
+  unsigned long remain;
+  void* ret = NULL;
+  unsigned long start_idx = 0;
+
+  if(size == 0)
+    return ret;
+
+  size = (size + (PAGE_SIZE - 1)) & PAGE_MASK;
+
+  remain = size / PAGE_SIZE;
+
+  flags = enter_critical_section();
+
+  for (int j = 0; (j < CONFIG_QEMU_PCI_BAR_PAGE_COUNT) && (remain > 0); j++)
+    {
+      if(!((qemu_bar_pages_bitmap[j / 64] >> (j & 0x3f)) & 0x1))
+          remain--;
+      else
+          remain = size / PAGE_SIZE;
+
+      if(remain == 0)
+        {
+          start_idx = j - (size / PAGE_SIZE - 1);
+          break;
+        }
+    }
+
+  if(!remain)
+    {
+      remain = size / PAGE_SIZE;
+      for (int i = start_idx; i < start_idx + remain; i++)
+        {
+          qemu_bar_pages_bitmap[i / 64] |= (1 << (i & 0x3f));
+        }
+
+      ret = (void*)qemu_pci_bar_pages + start_idx * PAGE_SIZE;
+    }
+
+  leave_critical_section(flags);
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: qemu_page_free
+ *
+ * Description:
+ *  Free pages from the bar pages memory regions
+ *
+ * Input Parameters:
+ *   size   - The number of bytes to be allocated, must be page aligned
+ *
+ * Returned Value:
+ *   0: success, <0: A negated errno
+ *
+ ****************************************************************************/
+
+void qemu_page_free(void* ptr, size_t size)
+{
+  irqstate_t flags;
+  unsigned long start_idx = ((uintptr_t)ptr - (uintptr_t)qemu_pci_bar_pages) / PAGE_SIZE;
+  unsigned long remain = size / PAGE_SIZE;
+
+  if(size & ~PAGE_MASK || size == 0 || !ptr)
+    return;
+
+  flags = enter_critical_section();
+
+  for (int i = start_idx; i < start_idx + remain; i++)
+    {
+      qemu_bar_pages_bitmap[i / 64] &= ~(1 << (i & 0x3f));
+    }
+
+  leave_critical_section(flags);
+
+  return;
+}
+
+#endif
 
 /****************************************************************************
  * Name: qemu_pci_cfg_write
@@ -185,14 +281,14 @@ static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
 }
 
 /****************************************************************************
- * Name: qemu_pci_map_bar
+ * Name: qemu_pci_map_mem
  *
  * Description:
  *  Map address in a 32 bits bar in the memory address space
  *
  * Input Parameters:
  *   dev    - Device private data
- *   bar    - Bar number
+ *   addr   - Memory address
  *   length - Map length, multiple of PAGE_SIZE
  *
  * Returned Value:
@@ -200,70 +296,37 @@ static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
  *
  ****************************************************************************/
 
-static void* qemu_pci_map_bar(FAR struct pci_dev_s *dev, uint32_t addr,
+static void* qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
                               unsigned long length)
 {
-  if(addr)
-    {
-      up_map_region((void *)((uintptr_t)addr), length,
-          X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
-
-  return (void*)((uintptr_t)addr);
-    }
-#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
-  else
-    {
-      uintptr_t addr64 = (uintptr_t)gran_alloc(qemu_pci_bar_pages, length);
-      if (addr64 > 0xffffffff)
-        {
-          gran_free(qemu_pci_bar_pages, (void*)addr64, length);
-          return NULL;
-        }
-      else
-        {
-          return (void*)addr64;
-        }
-    }
-#endif
-
-  return NULL;
-}
-
-/****************************************************************************
- * Name: qemu_pci_map_bar64
- *
- * Description:
- *  Map address in a 64 bits bar in the memory address space
- *
- * Input Parameters:
- *   dev    - Device private data
- *   bar    - Bar number
- *   length - Map length, multiple of PAGE_SIZE
- *
- * Returned Value:
- *   0: error, otherwise: bar content
- *
- ****************************************************************************/
-
-static void* qemu_pci_map_bar64(FAR struct pci_dev_s *dev, uint64_t addr,
-                                unsigned long length)
-{
-  if(addr)
+  if(addr && (addr < 0xffffffff))
     {
       up_map_region((void *)((uintptr_t)addr), length,
           X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
       return (void*)((uintptr_t)addr);
     }
-#ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
   else
+#ifndef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
     {
-      uintptr_t addr64 = (uintptr_t)gran_alloc(qemu_pci_bar_pages, length);
-      return (void*)addr64;
+      return NULL;
     }
-#endif
+#else
+    {
+      uintptr_t addr_to = (uintptr_t)qemu_page_alloc(length);
 
-  return NULL;
+      if (!addr_to)
+          return NULL;
+
+      if(!addr)
+        addr = addr_to;
+
+      up_map_region_to((void *)addr_to, (void*)addr, length,
+          X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
+
+      return (void*)addr_to;
+    }
+#endif /* CONFIG_QEMU_PCI_BAR_PAGE_COUNT */
 }
 
 /****************************************************************************
@@ -419,10 +482,7 @@ static int qemu_pci_msi_register(FAR struct pci_dev_s *dev, uint16_t vector)
 void qemu_pci_init(void)
 {
 #ifdef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
-  qemu_pci_bar_mem_hnd =
-    gran_initialize(qemu_pci_bar_pages,
-                    CONFIG_QEMU_PCI_BAR_PAGE_COUNT * PAGE_SIZE,
-                    12, 12);
+  memset(qemu_bar_pages_bitmap, 0, sizeof(qemu_bar_pages_bitmap));
 #endif
 
   pci_initialize(&qemu_pci_bus);
