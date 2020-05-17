@@ -75,6 +75,8 @@
 # define PCI_MSI_MDR64_SIZE     2
 # define PCI_MSI_APIC_ID_OFFSET 0xc
 
+#define PCI_CAP_VNDR            0x09
+
 #define PCI_CAP_MSIX            0x11
 # define PCI_MSIX_MCR           0x02
 # define PCI_MSIX_MCR_SIZE      2
