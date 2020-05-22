@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/virt/ivshmem.h
+ * include/nuttx/net/ivshmem_net.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_VIRT_IVSHMEM_H
-#define __INCLUDE_NUTTX_VIRT_IVSHMEM_H
+#ifndef __INCLUDE_NUTTX_NET_IVSHMEM_NET_H
+#define __INCLUDE_NUTTX_NET_IVSHMEM_NET_H
 
 /****************************************************************************
  * Included Files
@@ -33,35 +33,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define JH_IVSHMEM_VENDORID                       0x110A
-#define JH_IVSHMEM_DEVICEID                       0x4106
+#ifdef CONFIG_NET_IVSHMNET
+extern struct pci_dev_type_s pci_ivshmnet;
+#endif /* CONFIG_NET_IVSHMNET */
 
-#define JH_IVSHMEM_PROTOCOL_UNDEFINED             0x0000
-#define JH_IVSHMEM_PROTOCOL_NET                   0x0100
-
-#define JH_IVSHMEM_VND_LENGTH                     0x02
-#define JH_IVSHMEM_VND_PCTL                       0x03
-# define JH_IVSHMEM_VND_PCTL_1SHOT                (1 << 0)
-#define JH_IVSHMEM_VND_ST_SIZE                    0x04
-#define JH_IVSHMEM_VND_RW_SIZE                    0x08
-#define JH_IVSHMEM_VND_IO_SIZE                    0x10
-#define JH_IVSHMEM_VND_ADDR                       0x18
-
-#define JH_IVSHMEM_VND_LENGTH_NO_ADDR             0x02
-
-# define JH_IVSHMEM_INT_EN                       (1 << 0)
-
-struct jh_ivshmem_regs_s
-{
-    uint32_t id;
-    uint32_t max_peers;
-    uint32_t int_control;
-    uint32_t doorbell;
-    uint32_t state;
-};
-
-#ifdef CONFIG_VIRT_JH_IVSHMEM
-extern struct pci_dev_type_s pci_ivshmem;
-#endif /* CONFIG_VIRT_JH_IVSHMEM */
-
-#endif /* __INCLUDE_NUTTX_VIRT_IVSHMEM_H */
+#endif /* __INCLUDE_NUTTX_NET_IVSHMEM_NET_H */

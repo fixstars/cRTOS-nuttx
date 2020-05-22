@@ -351,6 +351,38 @@ menuconfig NET_LAN91C111
 if NET_LAN91C111
 endif # NET_LAN91C111
 
+menuconfig NET_IVSHMNET
+	bool "Jailhouse Ivshmem-net Support"
+	---help---
+		References:
+		Jailhouse Documentations
+
+if NET_IVSHMNET
+config IVSHMNET_NINTERFACES
+	int "Maximum number of interfaces"
+
+config IVSHMNET_BASE_IRQ
+	int "Base of platform IRQ number"
+	---help---
+		The starting number of platform IRQ used by Ivshmem-net.
+		The MSIX IRQs will be mapped to these IRQs.
+		Each device will use 2 IRQs.
+
+choice
+	prompt "Workqueue used by Ivshmem-net"
+	default IVSHMNET_LPWORK
+	---help---
+		The workqueue used by Ivhsmem-net state machine and receive handling.
+
+config IVSHMNET_HPWORK
+	bool "High priority queue"
+
+config IVSHMNET_LPWORK
+	bool "Low priority queue"
+
+endchoice
+endif # NET_IVSHMNET
+
 if ARCH_HAVE_PHY
 
 comment "External Ethernet PHY Device Support"

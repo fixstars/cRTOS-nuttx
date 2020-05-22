@@ -79,6 +79,10 @@ ifeq ($(CONFIG_NET_LAN91C111),y)
   CSRCS += lan91c111.c
 endif
 
+ifeq ($(CONFIG_NET_IVSHMNET),y)
+  CSRCS += ivshmem_net.c
+endif
+
 ifeq ($(CONFIG_ARCH_PHY_INTERRUPT),y)
   CSRCS += phy_notify.c
 endif
