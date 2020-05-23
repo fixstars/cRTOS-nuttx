@@ -86,7 +86,7 @@ static int qemu_pci_cfg_write(FAR struct pci_dev_s *dev, uintptr_t addr,
 static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
                                   unsigned int size);
 
-static void* qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
+static void *qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
                               unsigned long length);
 
 static int qemu_pci_msix_register(FAR struct pci_dev_s *dev,
@@ -106,7 +106,8 @@ static volatile uint8_t \
            __attribute__((aligned(PAGE_SIZE))) \
            __attribute__((section(".pcibar")));
 
-static uint64_t qemu_bar_pages_bitmap[(CONFIG_QEMU_PCI_BAR_PAGE_COUNT + 63) / 64];
+static
+uint64_t qemu_bar_pages_bitmap[(CONFIG_QEMU_PCI_BAR_PAGE_COUNT + 63) / 64];
 
 #endif
 
@@ -148,15 +149,15 @@ struct pci_bus_s qemu_pci_bus =
  *
  ****************************************************************************/
 
-void* qemu_page_alloc(size_t size)
+void *qemu_page_alloc(size_t size)
 {
   irqstate_t flags;
   unsigned long remain;
-  void* ret = NULL;
+  void *ret = NULL;
   unsigned long start_idx = 0;
 
-  if(size == 0)
-    return ret;
+  if (size == 0)
+      return ret;
 
   size = (size + (PAGE_SIZE - 1)) & PAGE_MASK;
 
@@ -166,19 +167,19 @@ void* qemu_page_alloc(size_t size)
 
   for (int j = 0; (j < CONFIG_QEMU_PCI_BAR_PAGE_COUNT) && (remain > 0); j++)
     {
-      if(!((qemu_bar_pages_bitmap[j / 64] >> (j & 0x3f)) & 0x1))
+      if (!((qemu_bar_pages_bitmap[j / 64] >> (j & 0x3f)) & 0x1))
           remain--;
       else
           remain = size / PAGE_SIZE;
 
-      if(remain == 0)
+      if (remain == 0)
         {
           start_idx = j - (size / PAGE_SIZE - 1);
           break;
         }
     }
 
-  if(!remain)
+  if (!remain)
     {
       remain = size / PAGE_SIZE;
       for (int i = start_idx; i < start_idx + remain; i++)
@@ -186,7 +187,7 @@ void* qemu_page_alloc(size_t size)
           qemu_bar_pages_bitmap[i / 64] |= (1 << (i & 0x3f));
         }
 
-      ret = (void*)qemu_pci_bar_pages + start_idx * PAGE_SIZE;
+      ret = (void *)qemu_pci_bar_pages + start_idx * PAGE_SIZE;
     }
 
   leave_critical_section(flags);
@@ -208,13 +209,14 @@ void* qemu_page_alloc(size_t size)
  *
  ****************************************************************************/
 
-void qemu_page_free(void* ptr, size_t size)
+void qemu_page_free(void *ptr, size_t size)
 {
   irqstate_t flags;
-  unsigned long start_idx = ((uintptr_t)ptr - (uintptr_t)qemu_pci_bar_pages) / PAGE_SIZE;
+  unsigned long start_idx =
+    ((uintptr_t)ptr - (uintptr_t)qemu_pci_bar_pages) / PAGE_SIZE;
   unsigned long remain = size / PAGE_SIZE;
 
-  if(size & ~PAGE_MASK || size == 0 || !ptr)
+  if (size & ~PAGE_MASK || size == 0 || !ptr)
     return;
 
   flags = enter_critical_section();
@@ -296,15 +298,15 @@ static uint32_t qemu_pci_cfg_read(FAR struct pci_dev_s *dev, uintptr_t addr,
  *
  ****************************************************************************/
 
-static void* qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
+static void *qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
                               unsigned long length)
 {
-  if(addr && (addr < 0xffffffff))
+  if (addr && (addr < 0xffffffff))
     {
       up_map_region((void *)((uintptr_t)addr), length,
-          X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
+        X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
-      return (void*)((uintptr_t)addr);
+      return (void *)((uintptr_t)addr);
     }
   else
 #ifndef CONFIG_QEMU_PCI_BAR_PAGE_COUNT
@@ -318,13 +320,13 @@ static void* qemu_pci_map_mem(FAR struct pci_dev_s *dev, uintptr_t addr,
       if (!addr_to)
           return NULL;
 
-      if(!addr)
+      if (!addr)
         addr = addr_to;
 
-      up_map_region_to((void *)addr_to, (void*)addr, length,
-          X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
+      up_map_region_to((void *)addr_to, (void *)addr, length,
+        X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL);
 
-      return (void*)addr_to;
+      return (void *)addr_to;
     }
 #endif /* CONFIG_QEMU_PCI_BAR_PAGE_COUNT */
 }
