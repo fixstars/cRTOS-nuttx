@@ -7,6 +7,7 @@ config QEMU_PCI
 	bool "Initialize and enumerate PCI/PCI-E Bus"
 	default n
 	select PCI
+	select BOARD_EARLY_INITIALIZE
 
 	---help---
 		Enables initialization and scaning of standard x86-64 PCI/PCI-E bus.
