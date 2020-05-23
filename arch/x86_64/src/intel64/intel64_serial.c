@@ -36,7 +36,7 @@
  * driver for this platform.
  */
 
-#ifdef USE_SERIALDRIVER
+#if defined(USE_SERIALDRIVER) && defined(CONFIG_16550_UART)
 
 /****************************************************************************
  * Public Functions
@@ -69,31 +69,6 @@ void uart_putreg(uart_addrwidth_t base, unsigned int offset,
     }
 
   outb(value, base + offset);
-}
-
-#else /* USE_SERIALDRIVER */
-
-/****************************************************************************
- * Name: up_putc
- *
- * Description:
- *   Provide priority, low-level access to support OS debug writes
- *
- ****************************************************************************/
-
-int up_putc(int ch)
-{
-  /* Check for LF */
-
-  if (ch == '\n')
-    {
-      /* Add CR */
-
-      up_lowputc('\r');
-    }
-
-  up_lowputc(ch);
-  return ch;
 }
 
 #endif /* USE_SERIALDRIVER */
