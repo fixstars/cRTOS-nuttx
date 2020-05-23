@@ -78,13 +78,12 @@ config RPMSG_SERIALINIT
 	default y if !16550_UART && !MCU_SERIAL
 	depends on RPMSG_UART
 
-config MCS99xx_UART
-	bool "PCI-E based MCS99xx UART driver"
+menuconfig MCS99XX_UART
+	bool "PCI based MCS99xx UART driver"
 	default n
-	select PCIE
-	select 16550_UART
+	select PCI
 
-if MCS99xx_UART
+if MCS99XX_UART
 source drivers/serial/Kconfig-mcs99xx
 endif
 

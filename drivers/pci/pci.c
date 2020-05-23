@@ -45,8 +45,8 @@ struct pci_dev_type_s *pci_device_types[] =
 #ifdef CONFIG_VIRT_QEMU_PCI_TEST
   &pci_type_qemu_pci_test,
 #endif /* CONFIG_VIRT_QEMU_PCI_TEST */
-#ifdef CONFIG_MCS99xx_UART
-  &pcie_mcs99xx,
+#ifdef CONFIG_MCS99XX_UART
+  &pci_mcs99xx,
 #endif /* CONFIG_MCS99xx_UART */
   NULL,
 };

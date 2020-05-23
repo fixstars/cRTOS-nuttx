@@ -3,12 +3,53 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
-if MCS99xx_UART
+if MCS99XX_UART
 
-config MCS99xx_UART_MAX_COUNT
-	int "Maximum number of MCS99xx devices"
+config MCS99XX_UART_MAX_COUNT
+	int "Maximum number of MCS99XX devices"
+	default 4
 
-config MCS99xx_UART_BASE_IRQ
-	int "The BASE IRQ of MCS99xx devices"
+config MCS99XX_UART_BASE_IRQ
+	int "The base IRQ of MCS99XX devices"
 
-endif # MCS99xx_UART
+config MCS99XX_UART_BAUD
+	int "MCS99XX UART BAUD"
+	default 115200
+
+config MCS99XX_UART_PARITY
+	int "MCS99XX UART parity"
+	default 0
+	range 0 2
+	---help---
+		MCS99XX UART parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config MCS99XX_UART_BITS
+	int "MCS99XX UART number of bits"
+	default 8
+	---help---
+		MCS99XX UART number of bits.  Default: 8
+
+config MCS99XX_UART_2STOP
+	int "MCS99XX UART two stop bits"
+	default 0
+	---help---
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
+
+config MCS99XX_UART_RXBUFSIZE
+	int "RX buffer size"
+	default 64
+
+config MCS99XX_UART_TXBUFSIZE
+	int "TX buffer size"
+	default 64
+
+config MCS99XX_UART_SERIAL_CONSOLE
+	bool "Use MCS99xx as Console device"
+
+if MCS99XX_UART_SERIAL_CONSOLE
+config MCS99XX_CONSOLE_BUS_BDF
+	hex "Device BDF of the console device"
+	default 0x0000
+
+endif # MCS99XX_UART_SERIAL_CONSOLE
+endif # MCS99XX_UART
