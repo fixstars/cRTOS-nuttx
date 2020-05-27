@@ -63,8 +63,6 @@
  *
  ****************************************************************************/
 
-extern uintptr_t tux_mm_new_pd1(void);
-
 void up_initial_state(struct tcb_s *tcb)
 {
   struct xcptcontext *xcp = &tcb->xcp;
