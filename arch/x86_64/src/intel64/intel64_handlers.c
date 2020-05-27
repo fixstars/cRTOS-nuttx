@@ -146,7 +146,7 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   return regs;
 #else
 
-  DEBUGASSERT(g_current_regs == NULL);
+  /*DEBUGASSERT(g_current_regs == NULL);*/
   g_current_regs = regs;
 
   switch (irq)
