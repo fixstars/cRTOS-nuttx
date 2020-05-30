@@ -53,6 +53,9 @@ struct pci_dev_type_s *pci_device_types[] =
 #ifdef CONFIG_NET_IVSHMNET
   &pci_ivshmnet,
 #endif /* CONFIG_NET_IVSHMNET */
+#ifdef CONFIG_VIRT_SHADOW
+  &pci_shadow,
+#endif /* CONFIG_VIRT_SHADOW */
 #ifdef CONFIG_VIRT_JH_IVSHMEM
   &pci_ivshmem,
 #endif /* CONFIG_VIRT_JH_IVSHMEM */

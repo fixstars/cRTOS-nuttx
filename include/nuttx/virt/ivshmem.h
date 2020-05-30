@@ -38,6 +38,7 @@
 
 #define JH_IVSHMEM_PROTOCOL_UNDEFINED             0x0000
 #define JH_IVSHMEM_PROTOCOL_NET                   0x0100
+#define JH_IVSHMEM_PROTOCOL_SHADOW                0x0200
 
 #define JH_IVSHMEM_VND_LENGTH                     0x02
 #define JH_IVSHMEM_VND_PCTL                       0x03
@@ -63,5 +64,9 @@ struct jh_ivshmem_regs_s
 #ifdef CONFIG_VIRT_JH_IVSHMEM
 extern struct pci_dev_type_s pci_ivshmem;
 #endif /* CONFIG_VIRT_JH_IVSHMEM */
+
+#ifdef CONFIG_VIRT_SHADOW
+extern struct pci_dev_type_s pci_shadow;
+#endif /* CONFIG_VIRT_SHADOW */
 
 #endif /* __INCLUDE_NUTTX_VIRT_IVSHMEM_H */

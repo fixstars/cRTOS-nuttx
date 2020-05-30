@@ -69,4 +69,19 @@ config CRTOS
 	---help---
 		Enable support to act as the RTOS in cRTOS
 
+config VIRT_SHADOW
+	bool "Driver for cRTOS shadow device"
+	default n
+	select PCI
+	---help---
+		Driver for cRTOS shadow device, based on Ivshmem 2.0
+
+if VIRT_SHADOW
+
+config VIRT_SHADOW_BASE_IRQ
+	int "Base IRQ Number for shadow device"
+	default 0
+
+endif
+
 endif # ARCH_X86_64
