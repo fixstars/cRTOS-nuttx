@@ -26,6 +26,7 @@
 
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
+#include <syscall.h>
 
 #include "up_internal.h"
 

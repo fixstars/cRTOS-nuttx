@@ -149,7 +149,12 @@
 #define MSR_FS_BASE             0xc0000100 /* 64bit FS base */
 
 #define MSR_EFER                0xc0000080
+# define EFER_SCE               0x00000001
 # define EFER_LME               0x00000100
+
+#define MSR_STAR                0xc0000081
+#define MSR_LSTAR               0xc0000082
+#define MSR_FMASK               0xc0000084
 
 #define MSR_MTRR_DEF_TYPE       0x000002ff
 # define MTRR_ENABLE            0x00000800
