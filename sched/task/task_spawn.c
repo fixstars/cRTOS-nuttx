@@ -308,10 +308,17 @@ static int nxtask_spawn_proxy(int argc, FAR char *argv[])
  *
  ****************************************************************************/
 
+#ifdef CONFIG_LIB_SYSCALL
+static int _task_spawn(FAR pid_t *pid, FAR const char *name, main_t entry,
+                       FAR const posix_spawn_file_actions_t *file_actions,
+                       FAR const posix_spawnattr_t *attr,
+                       FAR char * const argv[], FAR char * const envp[])
+#else
 int task_spawn(FAR pid_t *pid, FAR const char *name, main_t entry,
                FAR const posix_spawn_file_actions_t *file_actions,
                FAR const posix_spawnattr_t *attr,
                FAR char * const argv[], FAR char * const envp[])
+#endif
 {
   struct sched_param param;
   pid_t proxy;
@@ -463,9 +470,9 @@ errout_with_lock:
 int nx_task_spawn(FAR const struct spawn_syscall_parms_s *parms)
 {
   DEBUGASSERT(parms != NULL);
-  return task_spawn(parms->pid, parms->name, parms->entry,
-                    parms->file_actions, parms->attr,
-                    parms->argv, parms->envp);
+  return _task_spawn(parms->pid, parms->name, parms->entry,
+                     parms->file_actions, parms->attr,
+                     parms->argv, parms->envp);
 }
 #endif
 
