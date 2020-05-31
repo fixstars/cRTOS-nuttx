@@ -63,5 +63,10 @@ config ARCH_EXCLUDE_MULTIBOOT
     ---help---
         Some platforms, e.g. jailhouse, do not like to have a multiboot header
 
+config CRTOS
+	bool "cRTOS support"
+	default n
+	---help---
+		Enable support to act as the RTOS in cRTOS
 
 endif # ARCH_X86_64

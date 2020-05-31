@@ -51,3 +51,7 @@ ifeq ($(CONFIG_LIB_SYSCALL),y)
 CHIP_ASRCS += intel64_syscall.S
 CHIP_CSRCS += intel64_syscall_handler.c
 endif
+
+ifeq ($(CONFIG_CRTOS),y)
+CHIP_CSRCS += up_shadow.c
+endif

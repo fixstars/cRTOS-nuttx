@@ -36,6 +36,11 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   CFLAGS += -I$(ARCH_SRCDIR)\common
   CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
   CFLAGS += -I$(TOPDIR)\sched
+
+ifeq ($(CONFIG_CRTOS),y)
+  CFLAGS += -I$(ARCH_SRCDIR)\tux
+endif
+
 else
   ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(CONFIG_CYGWIN_WINTOOL),y)
@@ -44,6 +49,11 @@ ifeq ($(CONFIG_CYGWIN_WINTOOL),y)
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
+
+ifeq ($(CONFIG_CRTOS),y)
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/tux}"
+endif
+
 else
   NUTTX = $(TOPDIR)/nuttx$(EXEEXT)
   LOADER = $(TOPDIR)/loader$(EXEEXT)
@@ -51,6 +61,11 @@ else
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
   CFLAGS += -I$(TOPDIR)/sched
+
+ifeq ($(CONFIG_CRTOS),y)
+  CFLAGS += -I$(ARCH_SRCDIR)/tux
+endif
+
 endif
 endif
 
@@ -113,7 +128,11 @@ ifeq ($(HOSTOS),FreeBSD)
   HOST_ARCH = ${shell uname -m 2>/dev/null || echo "Other"}
 endif
 
-VPATH = chip:common:$(ARCH_SUBDIR)
+ifeq ($(CONFIG_CRTOS),y)
+  VPATH = chip:common:$(ARCH_SUBDIR):tux
+else
+  VPATH = chip:common:$(ARCH_SUBDIR)
+endif
 
 all: libarch$(LIBEXT)
 
@@ -165,8 +184,15 @@ export_startup: board/libboard$(LIBEXT) $(STARTUP_OBJS)
 ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
 endif
+
+ifeq ($(CONFIG_CRTOS),y)
+	$(Q) $(MKDEP) --dep-path chip --dep-path common --dep-path $(ARCH_SUBDIR) \
+	 --dep-path tux "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+else
 	$(Q) $(MKDEP) --dep-path chip --dep-path common --dep-path $(ARCH_SUBDIR) \
 	 "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+endif
+
 	$(Q) touch $@
 
 depend: .depend
