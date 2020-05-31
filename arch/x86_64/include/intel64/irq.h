@@ -185,6 +185,28 @@ struct xcptcontext
   uint64_t saved_rsp;
 #endif
 
+#ifdef CONFIG_CRTOS
+
+  /* These is used to mark a linux based binary */
+
+  uintptr_t linux_tcb;
+  uint32_t is_linux;
+  uint16_t linux_pid;
+  uint16_t linux_tid;
+  int32_t  linux_sock;
+
+  /* These are used for implementing the remote system calls. */
+
+  uint64_t rsc_ret;
+  sem_t    rsc_lock;
+  struct pollfd* rsc_pollfd;
+
+  /* These are used to multiplex stdin/stdout/stderr */
+
+  uint32_t fd[3];
+
+#endif
+
   /* Register save area */
 
   uint64_t regs[XCPTCONTEXT_REGS] __attribute__((aligned (16)));
