@@ -207,13 +207,20 @@ pd_loop:
     dec     %ecx
     jnz     pd_loop
 
-    // Populate the 1GB after 4GB boundary with Global mapping to kernel code
-    // This creates maps the lower 1GB to 4GB~5GB
+    // Populate the 4GB after 4GB boundary with 1:1 Global mapping
     lea     pdpt_low, %edi
     mov     $(X86_PAGE_GLOBAL | X86_PAGE_WR | X86_PAGE_PRESENT | X86_PAGE_HUGE), %eax
 
-    mov     $0x4,   %ecx
-    mov     %eax,   0(%edi, %ecx, X86_PAGE_ENTRY_SIZE)
+    mov     $0x4,   %ebx
+    mov     $0x1,   %ecx
+pdpt_high_1_1_loop:
+    mov     %eax,   0(%edi, %ebx, X86_PAGE_ENTRY_SIZE)
+
+    inc     %ebx
+    add     $0x40000000, %eax
+
+    dec     %ecx
+    jnz     pdpt_high_1_1_loop
 
     // Enable PAE
     mov     %cr4,   %eax
