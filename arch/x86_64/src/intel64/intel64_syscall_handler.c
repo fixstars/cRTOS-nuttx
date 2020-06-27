@@ -44,7 +44,7 @@
  *
  ****************************************************************************/
 
-#ifdef CONFIG_LIB_SYSCALL
+#if defined(CONFIG_LIB_SYSCALL) && !defined(CONFIG_CRTOS)
 
 uint64_t __attribute__ ((noinline))
 syscall_handler(unsigned long nbr,

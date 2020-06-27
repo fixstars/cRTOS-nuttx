@@ -34,6 +34,10 @@
 #include "arch/io.h"
 #include "arch/irq.h"
 
+#ifdef CONFIG_CRTOS
+#include "tux.h"
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -106,4 +110,48 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   /* The size of the allocated stack is now zero */
 
   dtcb->adj_stack_size = 0;
+
+#ifdef CONFIG_CRTOS
+  struct vma_s* ptr;
+
+  /* Clean up the mmaped virtual memories */
+
+  if (dtcb->xcp.is_linux == 2)
+    {
+
+    for (ptr = dtcb->xcp.vma; ptr; ptr = ptr->next)
+      {
+        if(ptr == &g_vm_full_map)
+          continue;
+
+        if(ptr->pa_start == 0xffffffffffffffff)
+          continue;
+
+        gran_free(tux_mm_hnd, (void*)(ptr->pa_start),
+                  ptr->va_end - ptr->va_start);
+
+#ifdef CONFIG_DEBUG_SYSCALL_INFO
+        if (ptr->_backing[0] != '[')
+            kmm_free(ptr->_backing);
+#endif
+
+        kmm_free(ptr);
+      }
+
+    for(ptr = dtcb->xcp.pda; ptr; ptr = ptr->next)
+      {
+        if(ptr == &g_vm_full_map)
+            continue;
+        gran_free(tux_mm_hnd, (void*)(ptr->pa_start),
+                  VMA_SIZE(ptr) / HUGE_PAGE_SIZE * PAGE_SIZE);
+        kmm_free(ptr);
+      }
+
+    tux_mm_del_pd1(dtcb->xcp.pd1);
+
+    }
+
+  /* Existence not checked, delete function will handle such case */
+  timer_delete(dtcb->xcp.alarm_timer);
+#endif
 }

@@ -139,6 +139,22 @@ void up_sigdeliver(void)
   regs[REG_RFLAGS]     = rtcb->xcp.saved_rflags;
   rtcb->xcp.sigdeliver = NULL;  /* Allows next handler to be scheduled */
 
+#ifdef CONFIG_CRTOS
+  rtcb->xcp.saved_rsp = 0;
+
+  if (rtcb->xcp.saved_kstack)
+    {
+      rtcb->adj_stack_ptr = rtcb->xcp.saved_kstack;
+      write_gsbase(rtcb->adj_stack_ptr);
+      rtcb->xcp.saved_kstack = 0;
+    }
+
+  if (rtcb->xcp.signal_stack_flag & 1)
+    {
+      rtcb->xcp.signal_stack_flag = 0;
+    }
+#endif
+
   /* Then restore the correct state for this thread of execution. */
 
   board_autoled_off(LED_SIGNAL);

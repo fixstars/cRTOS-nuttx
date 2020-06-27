@@ -39,11 +39,14 @@
 #include <poll.h>
 
 #include "sched/sched.h"
+#include "semaphore/semaphore.h"
 
 #include <arch/io.h>
 #include <nuttx/pci/pci.h>
 #include <nuttx/virt/ivshmem.h>
 #include <nuttx/virt/virtio_ring.h>
+
+#include "tux.h"
 
 /*****************************************************************************
  * Pre-processor Definitions
@@ -528,6 +531,12 @@ static int shadow_tx_frame(struct shadow_dev_s *dev, void* data, int len)
   tx->num_added = 0;
 
   return 0;
+}
+
+bool shadow_rx_avail(struct shadow_dev_s *in)
+{
+  mb();
+  return READ_ONCE(in->rx.vr.avail->idx) != in->rx.last_avail_idx;
 }
 
 /*****************************************
@@ -1102,6 +1111,128 @@ int shadow_probe(FAR struct pci_bus_s *bus,
   g_shadow_dev_count++;
 
   return OK;
+}
+
+/****************************************************************************
+ * Name: shadow_set_global_prio
+ *
+ * Description:
+ *  Publish the tcb's priority
+ *
+ * Input Parameters:
+ *   prio: tcb's priority
+ *
+ ****************************************************************************/
+
+void shadow_set_global_prio(uint64_t prio)
+{
+  if(!g_shadow_dev_count)
+      return;
+
+  shadow_set_prio(g_shadow_devices, prio);
+}
+
+/****************************************************************************
+ * Name: up_check_tasks
+ *
+ * Description:
+ *   The currently executing task at the head of the ready to run list must
+ *   be stopped.  Save its context and move it to the inactive list specified
+ *   by task_state.
+ *
+ * Input Parameters:
+ *   None
+ *
+ ****************************************************************************/
+
+void up_check_tasks(void)
+{
+  uint64_t buf[2];
+  struct tcb_s *rtcb;
+  irqstate_t flags;
+
+  if(!g_shadow_dev_count)
+      return;
+
+  if(!(g_shadow_devices->flags & SHADOW_FLAG_RUN))
+      return;
+
+  /* the IRQ of shadow process might race with us */
+
+  flags = enter_critical_section();
+
+  while (shadow_rx_avail(g_shadow_devices))
+    {
+      memset(buf, 0, sizeof(buf));
+
+      shadow_receive(g_shadow_devices, buf);
+
+      rtcb = (struct tcb_s *)buf[1];
+
+      if (buf[1] & (1ULL << 63))
+        {
+          /* It is a signal */
+
+          buf[1] &= ~(1ULL << 63);
+
+          if(buf[0])
+            {
+              int lpid;
+              lpid = get_nuttx_pid(buf[1]);
+
+              if (lpid > 0)
+                  nxsig_kill(lpid, buf[0]);
+            }
+        }
+      else
+        {
+          buf[1] &= ~(1ULL << 63);
+
+          rtcb = (struct tcb_s *)buf[1];
+
+          if (rtcb)
+            {
+              /* Write the return value */
+              rtcb->xcp.rsc_ret = buf[0];
+
+              if (rtcb->xcp.rsc_pollfd)
+                {
+                  /* Someone is waiting */
+                  rtcb->xcp.rsc_pollfd->revents |= POLLIN;
+                }
+
+              /* The sem to unblock,
+               * either the poll sem or the rsc_lock sem
+               */
+
+              sem_t *to_unlock = rtcb->waitsem;
+
+              /* It is, let the task take the semaphore */
+
+              rtcb->waitsem = NULL;
+
+              nxsem_release_holder(to_unlock);
+              to_unlock->semcount++;
+
+              /* The task will be the new holder of the semaphore when
+               * it is awakened.
+               */
+              nxsem_add_holder_tcb(rtcb, to_unlock);
+
+              nxsched_remove_blocked(rtcb);
+
+              /* Add the task in the correct location in the prioritized
+               * ready-to-run task list
+               */
+              nxsched_add_prioritized(rtcb, (FAR dq_queue_t *)&g_pendingtasks);
+              rtcb->task_state = TSTATE_TASK_PENDING;
+            }
+        }
+    }
+
+  shadow_enable_rx_irq(g_shadow_devices);
+
+  leave_critical_section(flags);
 }
 
 /*****************************************************************************

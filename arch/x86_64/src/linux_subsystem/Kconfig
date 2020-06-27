@@ -1,0 +1,11 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "Linux_subsystem Configuration Options"
+
+config TUX_FD_RESERVE
+	int "Number of FDs reserved for Linux files"
+    default 64
+

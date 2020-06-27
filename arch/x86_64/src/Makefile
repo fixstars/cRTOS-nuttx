@@ -36,6 +36,9 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   CFLAGS += -I$(ARCH_SRCDIR)\common
   CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
   CFLAGS += -I$(TOPDIR)\sched
+ifeq ($(CONFIG_CRTOS),y)
+  CFLAGS += -I$(ARCH_SRCDIR)\linux_subsystem
+endif
 
 ifeq ($(CONFIG_CRTOS),y)
   CFLAGS += -I$(ARCH_SRCDIR)\tux
@@ -60,7 +63,10 @@ else
   CFLAGS += -I$(ARCH_SRCDIR)/chip
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
-  CFLAGS += -I$(TOPDIR)/sched
+	CFLAGS += -I$(TOPDIR)/sched
+ifeq ($(CONFIG_CRTOS),y)
+  CFLAGS += -I$(ARCH_SRCDIR)/linux_subsystem
+endif
 
 ifeq ($(CONFIG_CRTOS),y)
   CFLAGS += -I$(ARCH_SRCDIR)/tux
@@ -69,10 +75,10 @@ endif
 endif
 endif
 
-ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
+ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS) $(TUX_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS) $(TUX_CSRCS)
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
 SRCS = $(ASRCS) $(CSRCS)
@@ -129,7 +135,7 @@ ifeq ($(HOSTOS),FreeBSD)
 endif
 
 ifeq ($(CONFIG_CRTOS),y)
-  VPATH = chip:common:$(ARCH_SUBDIR):tux
+  VPATH = chip:common:$(ARCH_SUBDIR):linux_subsystem
 else
   VPATH = chip:common:$(ARCH_SUBDIR)
 endif

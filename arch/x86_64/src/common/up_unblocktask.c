@@ -36,6 +36,10 @@
 #include "clock/clock.h"
 #include "up_internal.h"
 
+#ifdef CONFIG_CRTOS
+#include "tux.h"
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -67,6 +71,20 @@ void up_unblock_task(struct tcb_s *tcb)
   /* Remove the task from the blocked task list */
 
   nxsched_remove_blocked(tcb);
+
+  /* this ensure that interrupt coming after checking and
+   * before switching is received iff rtcb.prio == pipe_tcb.prio
+   * We don't know what we are switching to,
+   * but we know the priority of the unblocking tcb
+   * The selected tcb's priority must be greater or equal to the
+   * unblocking one, so it's safe to set it to the unblocking tcb priority
+   */
+
+#ifdef CONFIG_CRTOS
+  shadow_set_global_prio(tcb->sched_priority);
+
+  up_check_tasks();
+#endif
 
   /* Add the task in the correct location in the prioritized
    * ready-to-run task list

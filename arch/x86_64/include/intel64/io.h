@@ -36,11 +36,22 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define VMA_SIZE(vma) (vma->va_end - vma->va_start)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
+
+struct vma_s {
+    struct vma_s *next;
+    uint64_t      va_start;
+    uint64_t      va_end;
+    uintptr_t     pa_start;
+    uint64_t      proto;
+    char         *_backing;
+};
 
 /****************************************************************************
  * Inline functions
@@ -184,6 +195,9 @@ static inline void up_invalid_TLB(uintptr_t start, uintptr_t end)
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
+extern struct vma_s g_vm_full_map;
+extern struct vma_s g_vm_empty_map;
 
 /****************************************************************************
  * Public Function Prototypes

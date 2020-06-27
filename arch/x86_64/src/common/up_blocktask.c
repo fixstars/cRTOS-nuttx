@@ -35,6 +35,10 @@
 #include "group/group.h"
 #include "up_internal.h"
 
+#ifdef CONFIG_CRTOS
+#include "tux.h"
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -79,6 +83,15 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
   /* Add the task to the specified blocked task list */
 
   nxsched_add_blocked(tcb, (tstate_t)task_state);
+
+  /* This ensure that interrupt coming after checking and
+   * before switching is received iff rtcb.prio == pipe_tcb.prio */
+  /* because we don't know what we are switching to , set it to zero */
+#ifdef CONFIG_CRTOS
+  shadow_set_global_prio(0);
+
+  up_check_tasks();
+#endif
 
   /* If there are any pending tasks, then add them to the ready-to-run
    * task list now

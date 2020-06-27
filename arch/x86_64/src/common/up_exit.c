@@ -144,6 +144,10 @@ void _exit(int status)
   nxsched_foreach(_up_dumponexit, NULL);
 #endif
 
+#ifdef CONFIG_CRTOS
+  up_check_tasks();
+#endif
+
   /* Destroy the task at the head of the ready to run list. */
 
   (void)nxtask_exit();

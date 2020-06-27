@@ -54,6 +54,10 @@ void up_release_pending(void)
 
   sinfo("From TCB=%p\n", rtcb);
 
+#ifdef CONFIG_CRTOS
+  up_check_tasks();
+#endif
+
   /* Merge the g_pendingtasks list into the ready-to-run task list */
 
   if (nxsched_merge_pending())

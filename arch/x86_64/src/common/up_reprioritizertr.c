@@ -112,6 +112,10 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
            * task list now
            */
 
+#ifdef CONFIG_CRTOS
+          up_check_tasks();
+#endif
+
           if (g_pendingtasks.head)
             {
               nxsched_merge_pending();

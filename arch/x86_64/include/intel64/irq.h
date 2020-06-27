@@ -33,6 +33,7 @@
 #  include <stdint.h>
 #  include <stdbool.h>
 #  include <arch/arch.h>
+#  include <arch/io.h>
 #  include <semaphore.h>
 #  include <time.h>
 #  include <debug.h>
@@ -183,6 +184,14 @@ struct xcptcontext
   uint64_t saved_rip;
   uint64_t saved_rflags;
   uint64_t saved_rsp;
+
+#ifdef CONFIG_CRTOS
+  uint64_t saved_kstack;
+  uint64_t signal_stack;
+  uint64_t signal_stack_size;
+  uint64_t signal_stack_flag;
+#endif
+
 #endif
 
 #ifdef CONFIG_CRTOS
@@ -204,6 +213,22 @@ struct xcptcontext
   /* These are used to multiplex stdin/stdout/stderr */
 
   uint32_t fd[3];
+
+  /* For tux system calls and ABI */
+
+  timer_t alarm_timer;
+
+  uint64_t fs_base_set;
+  uint64_t fs_base;
+
+  int32_t* clear_child_tid;
+
+  void* __brk;
+  void* __min_brk;
+
+  struct vma_s* vma;
+  struct vma_s* pda;
+  uint64_t* pd1;
 
 #endif
 

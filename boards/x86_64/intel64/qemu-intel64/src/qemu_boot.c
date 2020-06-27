@@ -35,6 +35,10 @@
 
 #include "qemu_intel64.h"
 
+#ifdef CONFIG_CRTOS
+#include "arch/../src/linux_subsystem/tux.h"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -96,6 +100,10 @@ void board_early_initialize(void)
   /* Initialization of system */
 
   qemu_pci_init();
+#endif
+
+#ifdef CONFIG_CRTOS
+  tux_mm_init();
 #endif
 }
 #endif

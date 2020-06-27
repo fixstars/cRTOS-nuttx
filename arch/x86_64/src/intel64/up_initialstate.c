@@ -43,6 +43,28 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+struct vma_s g_vm_full_map = {
+    .va_start = 0x0,
+    .va_end = 0x40000000, // start of kheap
+    .pa_start = 0x0,
+    ._backing = "",
+    .proto = 3,
+    .next = NULL
+};
+
+struct vma_s g_vm_empty_map = {
+    .va_start = 0x0,
+    .va_end = 0x40000000, // start of kheap
+    .pa_start = 0x0,
+    ._backing = "",
+    .proto = 0,
+    .next = NULL
+};
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -66,7 +88,6 @@
 void up_initial_state(struct tcb_s *tcb)
 {
   struct xcptcontext *xcp = &tcb->xcp;
-  struct tcb_s *rtcb;
 
   /* Initialize the initial exception register context structure */
 
@@ -80,10 +101,57 @@ void up_initial_state(struct tcb_s *tcb)
 
   xcp->regs[3]      = (uint64_t)0x0000000000001f80;
 
+#ifdef CONFIG_CRTOS
+
   /* set page table to share space with current process */
 
-  rtcb = this_task();
-  UNUSED(rtcb);
+  struct tcb_s *rtcb = this_task();
+
+  /* Check for some special cases:  (1) rtcb may be NULL only during
+   * early boot-up phases, and (2) what if a irq spawns a task?.
+   */
+
+  if (rtcb != NULL && !up_interrupt_context())
+    {
+      if(rtcb->xcp.is_linux)
+        {
+          xcp->vma = NULL;
+          xcp->pda = NULL;
+          xcp->pd1 = NULL;
+
+          xcp->is_linux = 1;
+          xcp->linux_sock = rtcb->xcp.linux_sock;
+          xcp->linux_tcb  = rtcb->xcp.linux_tcb;
+          xcp->linux_pid  = rtcb->xcp.linux_pid;
+
+          nxsem_init(&xcp->rsc_lock, 1, 0);
+          nxsem_set_protocol(&xcp->rsc_lock, SEM_PRIO_NONE);
+
+          xcp->rsc_pollfd = NULL;
+
+          xcp->fd[0] = rtcb->xcp.fd[0];
+          xcp->fd[1] = rtcb->xcp.fd[1];
+          xcp->fd[2] = rtcb->xcp.fd[2];
+
+          xcp->signal_stack_flag = 2; // TUX_SS_DISABLE
+        }
+      else
+        {
+          xcp->is_linux = 0;
+          xcp->vma = &g_vm_empty_map;
+          xcp->pda = &g_vm_empty_map;
+          xcp->pd1 = NULL;
+        }
+    }
+  else
+    {
+      xcp->is_linux = 0;
+      xcp->vma = &g_vm_empty_map;
+      xcp->pda = &g_vm_empty_map;
+      xcp->pd1 = NULL;
+    }
+
+#endif
 
   /* Save the initial stack pointer... the value of the stackpointer before
    * the "interrupt occurs."

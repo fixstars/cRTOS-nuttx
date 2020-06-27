@@ -37,6 +37,12 @@ CHIP_ASRCS  = intel64_saveusercontext.S intel64_fullcontextrestore.S intel64_vec
 CHIP_CSRCS  = intel64_handlers.c intel64_idle.c intel64_lowsetup.c 
 CHIP_CSRCS += intel64_serial.c intel64_rng.c intel64_check_capability.c
 
+# Linux subsystem
+
+TUX_CSRCS = linux_syscall.c tux_rexec.c tux_exec.c tux_delegate.c
+TUX_CSRCS += tux_timing.c tux_brk.c tux_futex.c tux_mm.c tux_prctl.c tux_rlimit.c tux_set_tid_address.c tux_clone.c tux_alarm.c tux_select.c tux_poll.c tux_shm.c tux_sem.c tux_proc.c tux_sigaltstack.c
+TUX_ASRCS = clone.S tux_syscall.S
+
 # Configuration-dependent intel64 files
 
 ifneq ($(CONFIG_SCHED_TICKLESS),y)

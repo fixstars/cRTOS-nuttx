@@ -69,6 +69,22 @@ config CRTOS
 	---help---
 		Enable support to act as the RTOS in cRTOS
 
+if CRTOS
+
+config TUX_FD_RESERVE
+	int "FDs reserved for normal realm"
+	default 512
+
+config TUX_USER_ADDR_START
+	hex "Start address of memory reserved for tux user-space"
+	default 0x8000000
+
+config TUX_USER_ADDR_SIZE
+	hex "Size of memory reserved for tux user-space"
+	default 0x20000000
+
+endif # CRTOS
+
 config VIRT_SHADOW
 	bool "Driver for cRTOS shadow device"
 	default n
