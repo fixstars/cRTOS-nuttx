@@ -451,26 +451,11 @@ static inline uint64_t unset_msr(unsigned long nbr){
  * Public Functions
  ****************************************************************************/
 
-static inline uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
+static inline uint64_t* temp_map(uintptr_t start, uintptr_t end)
 {
-  uintptr_t k;
-  uintptr_t lsb = start & ~HUGE_PAGE_MASK;
-  start &= HUGE_PAGE_MASK;
+  svcinfo("Temp map %llx - %llx\n", start, end);
 
-  svcinfo("Temp map %llx - %llx at 0xc0000000\n", start, end);
-
-  /* Temporary map the new pdas at high memory 0xc000000 ~ */
-
-  for(k = start; k < end; k += HUGE_PAGE_SIZE)
-    {
-      pd[((0xc0000000 + k - start) >> 21) & 0x7ffffff]
-          = k | X86_PAGE_PRESENT | X86_PAGE_WR |
-                X86_PAGE_WRTHR | X86_PAGE_NOCACHE | X86_PAGE_GLOBAL;
-    }
-
-  up_invalid_TLB(start, end);
-
-  return (uint64_t *)(0xc0000000 + lsb);
+  return (uint64_t*)(start + 0x100000000);
 }
 
 static inline void *virt_to_phys(void *vaddr)

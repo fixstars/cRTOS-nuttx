@@ -24,17 +24,10 @@ void tux_mm_init(void) {
 }
 
 uint64_t *tux_mm_new_pd1(void) {
-  irqstate_t flags;
-
   uintptr_t pd1 = (uintptr_t)gran_alloc(tux_mm_hnd, PAGE_SIZE);
-
-  flags = enter_critical_section();
-
-  uint64_t *vpd1 = temp_map_at_0xc0000000(pd1, pd1 + PAGE_SIZE);
+  uint64_t *vpd1 = temp_map(pd1, pd1 + PAGE_SIZE);
 
   memset(vpd1, 0, PAGE_SIZE);
-
-  leave_critical_section(flags);
 
   return (uint64_t *)pd1;
 }
@@ -187,7 +180,6 @@ void make_vma_free(struct vma_s *ret) {
 
 long map_pages(struct vma_s *vma){
   struct tcb_s *tcb = this_task();
-  irqstate_t flags;
   uint64_t i, j;
   uint64_t prev_end;
   struct vma_s *pda;
@@ -232,8 +224,7 @@ long map_pages(struct vma_s *vma){
           svcinfo("New pda: %llx - %llx %llx\n", pda->va_start, pda->va_end, pda->pa_start);
 
           // Temporary map the memory for writing
-          flags = enter_critical_section();
-          tmp_pd = temp_map_at_0xc0000000(pda->pa_start, pda->pa_start + PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+          tmp_pd = temp_map(pda->pa_start, pda->pa_start + PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
 
           // Clear the page directories
           memset(tmp_pd, 0, PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
@@ -241,7 +232,6 @@ long map_pages(struct vma_s *vma){
           // Fill in the new mappings to page directories
           for(j = i; j < ptr->va_start && j < vma->va_end; j += PAGE_SIZE) // Scan the hole size;
             tmp_pd[((j - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + j - vma->va_start) | vma->proto;
-          leave_critical_section(flags);
 
           up_invalid_TLB(i, j);
 
@@ -250,14 +240,12 @@ long map_pages(struct vma_s *vma){
           pda->next = ptr;
 
           // Temporary map the memory for writing
-          flags = enter_critical_section();
-          tmp_pd = temp_map_at_0xc0000000((uintptr_t)tcb->xcp.pd1, (uintptr_t)tcb->xcp.pd1 + PAGE_SIZE);
+          tmp_pd = temp_map((uintptr_t)tcb->xcp.pd1, (uintptr_t)tcb->xcp.pd1 + PAGE_SIZE);
 
           // Map it via page directories
           for(j = pda->va_start; j < pda->va_end; j += HUGE_PAGE_SIZE) {
             tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
           }
-          leave_critical_section(flags);
 
           i = ptr->va_start < vma->va_end ? ptr->va_start : vma->va_end;
         }
@@ -268,13 +256,11 @@ long map_pages(struct vma_s *vma){
           // In this pda
 
           // Temporary map the memory for writing
-          flags = enter_critical_section();
-          tmp_pd = temp_map_at_0xc0000000(ptr->pa_start, ptr->pa_start + PAGE_SIZE * VMA_SIZE(ptr) / HUGE_PAGE_SIZE);
+          tmp_pd = temp_map(ptr->pa_start, ptr->pa_start + PAGE_SIZE * VMA_SIZE(ptr) / HUGE_PAGE_SIZE);
 
           // Map it via page directories
           for(; i < ptr->va_end && i < vma->va_end; i += PAGE_SIZE)
               tmp_pd[((i - ptr->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
-          leave_critical_section(flags);
         }
 
       if(i == vma->va_end) break;
@@ -304,8 +290,7 @@ long map_pages(struct vma_s *vma){
       svcinfo("New pda: %llx - %llx %llx\n", pda->va_start, pda->va_end, pda->pa_start);
 
       // Temporary map the memory for writing
-      flags = enter_critical_section();
-      tmp_pd = temp_map_at_0xc0000000(pda->pa_start, pda->pa_start + VMA_SIZE(pda));
+      tmp_pd = temp_map(pda->pa_start, pda->pa_start + VMA_SIZE(pda));
 
       // Clear the page directories
       memset(tmp_pd, 0, PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
@@ -313,7 +298,6 @@ long map_pages(struct vma_s *vma){
       // Fill in the new mappings to page directories
       for(j = i; j < vma->va_end; j += PAGE_SIZE) // Scan the hole size;
         tmp_pd[((j - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + j - vma->va_start) | vma->proto;
-      leave_critical_section(flags);
 
       up_invalid_TLB(i, j);
 
@@ -321,14 +305,12 @@ long map_pages(struct vma_s *vma){
       *pptr = pda;
       pda->next = NULL;
 
-      flags = enter_critical_section();
-      tmp_pd = temp_map_at_0xc0000000((uintptr_t)tcb->xcp.pd1, (uintptr_t)tcb->xcp.pd1 + PAGE_SIZE);
+      tmp_pd = temp_map((uintptr_t)tcb->xcp.pd1, (uintptr_t)tcb->xcp.pd1 + PAGE_SIZE);
 
       // Map it via page directories
       for(j = pda->va_start; j < pda->va_end; j += HUGE_PAGE_SIZE) {
         tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
       }
-      leave_critical_section(flags);
     }
 
   svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx, backed by 0x%llx\n", vma->va_end - vma->va_start, vma->va_start, vma->pa_start);
@@ -572,8 +554,8 @@ void *tux_mremap(unsigned long nbr, void *old_address, size_t old_size, size_t n
   memcpy(new, old_address, old_size > new_size ? new_size : old_size);
 
   svcinfo("TUX: mremap %llx - %llx -> %llx - %llx\n",
-          old_address, old_address + old_num_of_pages * PAGE_SIZE,
-          new, new + new_num_of_pages * PAGE_SIZE);
+          old_address, old_address + old_size,
+          new, new + new_size);
 
   tux_munmap(nbr, old_address, old_size);
 

@@ -17,10 +17,8 @@ static inline void* new_memory_block(uint64_t size, void** virt) {
     void* ret;
 
     ret = gran_alloc(tux_mm_hnd, size);
-    flags = enter_critical_section();
-    *virt = temp_map_at_0xc0000000((uintptr_t)ret, (uintptr_t)ret + size);
+    *virt = temp_map((uintptr_t)ret, (uintptr_t)ret + size);
     memset(*virt, 0, size);
-    leave_critical_section(flags);
     return ret;
 }
 
@@ -223,7 +221,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         }while(ptr != pptr->next);
 
         irqflags = enter_critical_section();
-        uint64_t* tmp_pd = temp_map_at_0xc0000000((uintptr_t)tcb->cmn.xcp.pd1, (uintptr_t)tcb->cmn.xcp.pd1 + PAGE_SIZE);
+        uint64_t* tmp_pd = temp_map((uintptr_t)tcb->cmn.xcp.pd1, (uintptr_t)tcb->cmn.xcp.pd1 + PAGE_SIZE);
 
         // Map it via page directories
         for(j = pda_ptr->va_start; j < pda_ptr->va_end; j += HUGE_PAGE_SIZE) {
