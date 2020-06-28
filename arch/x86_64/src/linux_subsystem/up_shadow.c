@@ -1,5 +1,5 @@
 /*****************************************************************************
- * arch/x86_64/src/tux/up_shadow.c
+ * arch/x86_64/src/linux_subsystem/up_shadow.c
  * Copyright (C) 2020  Chung-Fan Yang
  *
  * Derived from Jailhouse Linux Ivshmem-net driver
