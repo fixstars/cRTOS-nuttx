@@ -28,11 +28,7 @@
  * Authors:
  *  Jan Kiszka <jan.kiszka@siemens.com>
  *
- * This work is licensed under the terms of the GNU GPL, version 2.  See
- * the COPYING file in the top-level directory.
- *
- * Alternatively, you can use or redistribute this file under the following
- * BSD license:
+ * This work is licensed under the terms of the BSD license.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
