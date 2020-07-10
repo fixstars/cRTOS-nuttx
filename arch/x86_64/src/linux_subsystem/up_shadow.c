@@ -1,9 +1,13 @@
 /*****************************************************************************
  * arch/x86_64/src/linux_subsystem/up_shadow.c
- * Copyright (C) 2020  Chung-Fan Yang
  *
- * Derived from Jailhouse Linux Ivshmem-net driver
- * Copyright (C) 2020  Jan Kiszka
+ * Copyright (C) 2020  Chung-Fan Yang @ Fixstars Corporation
+ *                                      <chungfan.yang@fixstars.com>
+ *
+ * Derived from Jailhouse Linux Ivshmem-net and uio_ivshmem driver
+ * Copyright 2016 Mans Rullgard <mans@mansr.com>
+ * Copyright 2019 Jan Kiszka <jan.kiszka@siemens.com>
+ * Copyright (c) Siemens AG, 2016-2020
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

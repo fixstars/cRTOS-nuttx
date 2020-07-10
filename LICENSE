@@ -489,14 +489,36 @@ WARNING: These drivers are derived from the Jailhouse ivshmem_net driver,
 which is GPLv2 licensed. 
 You should include These drivers in your product at you own risk.
 
+  Copyright (C) 2020  Chung-Fan Yang @ Fixstars Corporation
+                                       <chungfan.yang@fixstars.com>
+ 
+  Derived from Jailhouse Linux Ivshmem-net and uio_ivshmem driver
+  Copyright 2016 Mans Rullgard <mans@mansr.com>
+  Copyright 2019 Jan Kiszka <jan.kiszka@siemens.com>
+  Copyright (c) Siemens AG, 2016-2020
+ 
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+ 
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+ 
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
 boards/x86_64/intel64/qemu-intel64/src/qemu_pci.c
 boards/x86_64/intel64/qemu-intel64/src/qemu_pci_readwrite.h
 ===========================================================
 
-Some functions are derived from the Jailhouse inmate library which is 
-under BSD 2 clause license. 
-
-  Jailhouse, a Linux-based partitioning hypervisor
+  Copyright (c) ChungFan Yang @ Fixstars Corporation, 2020
+                                <chungfan.yang@fixstars.com>
   Copyright (c) Siemens AG, 2014
 
   Authors:
@@ -534,3 +556,20 @@ Linux makes exemption on using the headers on user-space programs.
 However we are using them in a OS kernel.
 I am not sure if the exemption still holds.
 Use this at your own risk.
+
+  Copyright (c) ChungFan Yang @ Fixstars Corporation, 2020
+                                <chungfan.yang@fixstars.com>
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, see <http://www.gnu.org/licenses/>.
+
