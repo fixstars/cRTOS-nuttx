@@ -1032,7 +1032,8 @@ int shadow_probe(FAR struct pci_bus_s *bus,
   if (io_section_size)
     {
       mem->size = io_section_size;
-      mem->paddress = (mem - 2)->paddress + (mem - 2)->size;
+      mem->paddress =
+        (mem - 2)->paddress + (mem - 2)->size + (mem - 1)->size + 0x1000;
 
       mem->readonly = true;
 
@@ -1048,9 +1049,7 @@ int shadow_probe(FAR struct pci_bus_s *bus,
       mem++;
 
       mem->size = io_section_size;
-      mem->paddress =
-        (mem - 3)->paddress + (mem - 3)->size +
-        (!dev->peer_id) * mem->size + 0x1000;
+      mem->paddress = (mem - 1)->paddress + (mem - 1)->size + 0x1000;
 
       mem->readonly = false;
 
