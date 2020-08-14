@@ -41,6 +41,7 @@
  ****************************************************************************/
 
 extern void fork_kickstart(void *);
+extern void* get_kernel_stack_ptr(void);
 
 /****************************************************************************
  * Private Functions
@@ -164,24 +165,6 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
        */
 
       tcb->cmn.xcp.regs[REG_RIP] = *((uint64_t *)(get_kernel_stack_ptr()) - 2);
-
-      /* attach to the parent thread group */
-
-      ret = group_bind(tcb);
-      if (ret < 0)
-        {
-          svcerr("group_join() failed: %d\n", ret);
-          ret = -ENOMEM;
-          goto errout_with_tcbinit;
-        }
-
-      ret = group_join(tcb);
-      if (ret < 0)
-        {
-          svcerr("group_join() failed: %d\n", ret);
-          ret = -ENOMEM;
-          goto errout_with_tcbinit;
-        }
 
       uint64_t tid_slot = tux_delegate(56, 0, 0, 0, 0, 0, 0);
       tcb->cmn.xcp.linux_tid = tid_slot >> 48;
