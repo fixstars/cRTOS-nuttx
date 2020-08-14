@@ -262,7 +262,7 @@ long tux_pidhook(unsigned long nbr,
 }
 
 long tux_waithook(unsigned long nbr,
-                  uintptr_t param1, uintptr_t param2, uintptr_t param3,
+                  int32_t param1, uintptr_t param2, uintptr_t param3,
                   uintptr_t param4, uintptr_t param5, uintptr_t param6)
 {
   /* waitid and wait4 return the pid exited

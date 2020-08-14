@@ -244,7 +244,7 @@ long     tux_getpid             (unsigned long);
 long     tux_gettid             (unsigned long);
 long     tux_getppid            (unsigned long);
 long     tux_pidhook            (unsigned long, int, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t);
-long     tux_waithook           (unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t);
+long     tux_waithook           (unsigned long, int32_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t);
 
 long     tux_exec               (unsigned long, const char *, char *[], char *[]);
 long     _tux_exec              (char *, char *[], char *[]);
