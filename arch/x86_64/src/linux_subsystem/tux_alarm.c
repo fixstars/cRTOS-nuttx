@@ -175,7 +175,8 @@ long tux_rt_sigprocmask(unsigned long nbr, int how,
 
   ret = nxsig_procmask(how, &lset, &loset);
 
-  *oset = (loset >> 1);
+  if (oset)
+      *oset = (loset >> 1);
 
   return ret;
 };
