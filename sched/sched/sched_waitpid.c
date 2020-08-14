@@ -368,6 +368,14 @@ pid_t nx_waitpid(pid_t pid, int *stat_loc, int options)
             }
         }
 
+        /* do not wait, just return with 0 */
+        if ((options & WNOHANG) != 0)
+          {
+            *stat_loc = 0;
+            pid = 0;
+            break;
+          }
+
 #else  /* CONFIG_SCHED_CHILD_STATUS */
 
       /* Check if the task has already died. Signals are not queued in
@@ -416,7 +424,7 @@ pid_t nx_waitpid(pid_t pid, int *stat_loc, int options)
               /* Recover the exiting child */
 
               child = group_exit_child(rtcb->group);
-              DEBUGASSERT(child != NULL);
+              /*DEBUGASSERT(child != NULL);*/
 
               /* Discard the child entry, if we have one */
 
@@ -581,6 +589,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
       set_errno(-ret);
       ret = ERROR;
     }
+
 
   leave_cancellation_point();
   return ret;
