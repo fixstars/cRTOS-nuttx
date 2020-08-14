@@ -63,7 +63,7 @@ void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size)
   uint32_t     gatmask;
   int ret;
 
-  DEBUGASSERT(priv != NULL && memory && size <= 32 * (1 << priv->log2gran));
+  DEBUGASSERT(priv != NULL && memory);
 
   /* Get exclusive access to the GAT */
 

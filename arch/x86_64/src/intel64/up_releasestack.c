@@ -113,13 +113,14 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
 #ifdef CONFIG_CRTOS
   struct vma_s* ptr;
+  struct vma_s* tptr;
 
   /* Clean up the mmaped virtual memories */
 
   if (dtcb->xcp.is_linux == 2)
     {
 
-    for (ptr = dtcb->xcp.vma; ptr; ptr = ptr->next)
+    for (ptr = dtcb->xcp.vma; ptr;)
       {
         if(ptr == &g_vm_full_map)
           continue;
@@ -134,17 +135,20 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
         if (ptr->_backing[0] != '[')
             kmm_free(ptr->_backing);
 #endif
-
-        kmm_free(ptr);
+        tptr = ptr;
+        ptr = ptr->next;
+        kmm_free(tptr);
       }
 
-    for(ptr = dtcb->xcp.pda; ptr; ptr = ptr->next)
+    for(ptr = dtcb->xcp.pda; ptr;)
       {
         if(ptr == &g_vm_full_map)
             continue;
         gran_free(tux_mm_hnd, (void*)(ptr->pa_start),
                   VMA_SIZE(ptr) / HUGE_PAGE_SIZE * PAGE_SIZE);
-        kmm_free(ptr);
+        tptr = ptr;
+        ptr = ptr->next;
+        kmm_free(tptr);
       }
 
     tux_mm_del_pd1(dtcb->xcp.pd1);
